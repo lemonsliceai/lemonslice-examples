@@ -10,7 +10,7 @@ import {
 import api from "../api";
 import { useAgentState } from "../providers/AgentStateProvider";
 import HomeScreen from "./HomeScreen";
-import AgentCall from "./Call";
+import AgentCall from "./AgentCall";
 import Tray from "./Tray";
 
 const STATE_IDLE = "STATE_IDLE";
