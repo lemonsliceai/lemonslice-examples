@@ -1,5 +1,5 @@
 async function createRoom() {
-  const endpoint = "http://127.0.0.1:3000/create-room";
+  const endpoint = "http://localhost:3000/create-room";
   
   const response = await fetch(endpoint, {
     method: "POST",
