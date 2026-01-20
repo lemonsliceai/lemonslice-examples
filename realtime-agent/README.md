@@ -1,23 +1,23 @@
-# Lemon Slice Realtime Agent
+# LemonSlice Realtime Agent
 
-A React application that demonstrates how to integrate with the Lemon Slice API to create Daily.co video player and interact with AI agents in real-time.
+A React application that demonstrates how to integrate with the LemonSlice API to create Daily.co video player and interact with AI agents in real-time.
 
 ## Overview
 
 This application showcases how to:
 
-- Securely connect to the Lemon Slice API
-- Create Daily.co rooms and integrate it with a Lemon Slice agent
+- Securely connect to the LemonSlice API
+- Create Daily.co rooms and integrate it with a LemonSlice agent
 - Join video calls with the agent
 - Send messages to agents
-- Listen to Lemon Slice events and handle responses
+- Listen to LemonSlice events and handle responses
 
 ## Prerequisites
 
 - Node.js 18+ and pnpm
 - Python 3.8+ and pip
-- A Lemon Slice API key
-- A Lemon Slice agent ID
+- A LemonSlice API key
+- A LemonSlice agent ID
 
 > **⚠️ Security Note:** Never expose your API token in client-side code. Always use a self-hosted endpoint to securely handle API calls with your token on the server side.
 
@@ -53,15 +53,15 @@ pnpm start
 This application consists of two parts:
 
 1. **Frontend (React)**: The user interface that connects to Daily.co and interacts with the agent
-2. **Backend (FastAPI)**: A server that securely calls the Lemon Slice API to create rooms
+2. **Backend (FastAPI)**: A server that securely calls the LemonSlice API to create rooms
 
 ## Creating a Room
 
-The application creates a Daily.co room by calling the Lemon Slice API through the backend server. Here's how it works:
+The application creates a Daily.co room by calling the LemonSlice API through the backend server. Here's how it works:
 
 ### Backend Server (`backend/server.py`)
 
-The backend server provides a `/create-room` endpoint that securely calls the Lemon Slice API:
+The backend server provides a `/create-room` endpoint that securely calls the LemonSlice API:
 
 ```python
 @app.post("/create-room")
@@ -82,7 +82,7 @@ async def create_room():
 The server:
 - Reads `AGENT_ID` and `API_KEY` from environment variables
 - Makes a POST request to `https://lemonslice.com/api/rooms` with the API key in headers
-- Returns the `room_url` from the Lemon Slice API response
+- Returns the `room_url` from the LemonSlice API response
 
 ### Frontend API Client (`src/api.js`)
 
