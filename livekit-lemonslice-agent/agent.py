@@ -6,6 +6,7 @@ from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 load_dotenv()
 
+
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
