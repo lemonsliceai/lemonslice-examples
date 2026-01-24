@@ -1,8 +1,7 @@
 from dotenv import load_dotenv
 from livekit import agents
 from livekit.agents import AgentServer, AgentSession, Agent, room_io
-from livekit.plugins import noise_cancellation, silero, elevenlabs, lemonslice
-from livekit.plugins.turn_detector.multilingual import MultilingualModel
+from livekit.plugins import noise_cancellation, elevenlabs, lemonslice
 
 load_dotenv()
 
@@ -29,8 +28,6 @@ async def my_agent(ctx: agents.JobContext):
             voice_id="ys3XeJJA4ArWMhRpcX1D",
             model="eleven_flash_v2_5",
         ),
-        vad=silero.VAD.load(),
-        turn_detection=MultilingualModel(),
         resume_false_interruption=False,
     )
 

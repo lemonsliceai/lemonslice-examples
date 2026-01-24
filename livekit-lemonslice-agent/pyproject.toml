@@ -5,7 +5,7 @@ description = "An example on how to use LiveKit's LemonSlice plugin"
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
 dependencies = [
-    "livekit-agents[elevenlabs,silero,turn-detector]~=1.3",
+    "livekit-agents[elevenlabs]~=1.3",
     "livekit-plugins-lemonslice~=1.3",
     "livekit-plugins-noise-cancellation>=0.2.5",
     "python-dotenv>=1.2.1",
