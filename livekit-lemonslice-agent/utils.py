@@ -25,7 +25,7 @@ async def wait_for_avatar_ready(session_id: str, max_attempts: int = FIVE_MINS) 
         for _ in range(max_attempts):
             try:
                 response = await client.get(
-                    f"http://localhost:3000/api/liveai/sessions/{session_id}",
+                    f"https://lemonslice.com/api/liveai/sessions/{session_id}",
                     headers={"X-API-Key": os.getenv("LEMONSLICE_API_KEY")},
                     timeout=10.0,
                 )
