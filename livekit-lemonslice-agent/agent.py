@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from livekit import agents
 from livekit.agents import AgentServer, AgentSession, Agent, room_io
 from livekit.plugins import noise_cancellation, lemonslice
-from utils import wait_for_avatar_ready
+from utils import publish_room_message, register_lemonslice_avatar_room_handlers, wait_for_avatar_ready
 
 load_dotenv()
 logger = logging.getLogger("lemonslice")
@@ -24,6 +24,9 @@ server = AgentServer()
 
 @server.rtc_session()
 async def my_agent(ctx: agents.JobContext):
+    # Register to Livekit room callbacks
+    register_lemonslice_avatar_room_handlers(ctx.room)
+
     session = AgentSession(
         stt="deepgram/nova-2",
         llm="openai/gpt-4o-mini",
@@ -51,6 +54,11 @@ async def my_agent(ctx: agents.JobContext):
     avatar_ready = await wait_for_avatar_ready(session_id)
     if not avatar_ready:
         logger.warning("Avatar failed to become active, exiting")
+        await publish_room_message(
+            ctx.room,
+            msg_type="startup_failure",
+            message="Avatar failed to become active",
+        )
         return
 
     await session.generate_reply(instructions="Greet the user and offer your assistance.")
