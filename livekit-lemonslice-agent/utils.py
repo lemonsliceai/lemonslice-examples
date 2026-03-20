@@ -29,12 +29,12 @@ def register_lemonslice_avatar_room_handlers(
     def on_participant_connected(participant: rtc.RemoteParticipant) -> None:
         if getattr(participant, "identity", None) != avatar_identity:
             return
-        logger.info("LemonSLice Avatar joined")
+        logger.info("LemonSlice Avatar joined")
 
     def on_participant_disconnected(participant: rtc.RemoteParticipant) -> None:
         if getattr(participant, "identity", None) != avatar_identity:
             return
-        logger.info("LemonSLice Avatar left")
+        logger.info("LemonSlice Avatar left")
         if not disconnect_room_on_avatar_leave:
             return
         try:
