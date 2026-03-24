@@ -4,6 +4,7 @@ import logging
 import os
 import httpx
 from livekit import rtc
+from livekit.agents import AgentSession
 
 logger = logging.getLogger("lemonslice")
 
@@ -14,6 +15,7 @@ ROOM_MESSAGE_TOPIC = "lemonslice/message"
 
 
 def register_lemonslice_avatar_room_handlers(
+    agent_session: AgentSession,
     room: rtc.Room,
     *,
     avatar_identity: str = DEFAULT_LEMONSLICE_AVATAR_IDENTITY,
@@ -30,6 +32,8 @@ def register_lemonslice_avatar_room_handlers(
         if getattr(participant, "identity", None) != avatar_identity:
             return
         logger.info("LemonSlice Avatar joined")
+        # Instruct the agent to say something the moment they join the room
+        agent_session.generate_reply(instructions="Greet the user and offer your assistance.")
 
     def on_participant_disconnected(participant: rtc.RemoteParticipant) -> None:
         if getattr(participant, "identity", None) != avatar_identity:

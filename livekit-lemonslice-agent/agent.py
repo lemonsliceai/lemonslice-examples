@@ -24,8 +24,6 @@ server = AgentServer()
 
 @server.rtc_session()
 async def my_agent(ctx: agents.JobContext):
-    # Register to Livekit room callbacks
-    register_lemonslice_avatar_room_handlers(ctx.room)
 
     session = AgentSession(
         stt="deepgram/nova-2",
@@ -50,7 +48,11 @@ async def my_agent(ctx: agents.JobContext):
         ),
     )
 
-    # Wait until the avatar has joined the room and is ready
+    # Register LiveKit room callbacks
+    # Initial greeting -- session.generate_reply() -- should be called on participant_connected
+    register_lemonslice_avatar_room_handlers(agent_session=session, room=ctx.room)
+
+    # Poll the avatar's status to know when a GPU is ready
     avatar_ready = await wait_for_avatar_ready(session_id)
     if not avatar_ready:
         logger.warning("Avatar failed to become active, exiting")
@@ -60,8 +62,6 @@ async def my_agent(ctx: agents.JobContext):
             message="Avatar failed to become active",
         )
         return
-
-    await session.generate_reply(instructions="Greet the user and offer your assistance.")
 
 
 if __name__ == "__main__":
