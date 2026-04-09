@@ -1,0 +1,12 @@
+[project]
+name = "lemonslice-livekit-python-example-agent"
+version = "0.1.0"
+description = "LiveKit Agents worker (Python): Inference STT/LLM/TTS + LemonSlice avatar"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "livekit-agents[lemonslice]~=1.4",
+    "livekit-plugins-noise-cancellation>=0.2",
+    "python-dotenv>=1.0.0",
+]
+
