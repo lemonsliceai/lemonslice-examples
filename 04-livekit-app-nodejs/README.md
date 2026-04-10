@@ -1,6 +1,6 @@
 # livekit-app-nodejs
 
-End-to-end example showing how to use the LemonSlice Self-Managed API with LiveKit integration. It follows the same self-managed model as `03-livekit-app-python` (bring your own STT, LLM, and TTS while LemonSlice handles avatar generation), but builds the LiveKit agent using the [LiveKit Node.js SDK](https://github.com/livekit/agents-js).
+End-to-end example showing how to use the LemonSlice Self-Managed Pipeline with LiveKit integration. It follows the same self-managed model as `03-livekit-app-python` (bring your own STT, LLM, and TTS while LemonSlice handles avatar generation), but builds the LiveKit agent using the [LiveKit Node.js SDK](https://github.com/livekit/agents-js).
 
 ## Screenshots
 

@@ -1,6 +1,6 @@
 # livekit-app-python
 
-End-to-end example showing how to use the LemonSlice Self-Managed API with LiveKit integration. Use this when you want full control over your video agent pipeline (for example, with your own STT, LLM, and TTS components) while LemonSlice handles avatar generation; orchestration, infrastructure, and UI remain in your stack, with the LiveKit agent built using the [LiveKit Python SDK](https://github.com/livekit/agents).
+End-to-end example showing how to use the LemonSlice Self-Managed Pipeline with LiveKit integration. Use this when you want full control over your video agent pipeline (for example, with your own STT, LLM, and TTS components) while LemonSlice handles avatar generation; orchestration, infrastructure, and UI remain in your stack, with the LiveKit agent built using the [LiveKit Python SDK](https://github.com/livekit/agents).
 
 ## Screenshots
 

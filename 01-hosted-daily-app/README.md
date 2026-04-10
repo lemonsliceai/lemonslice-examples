@@ -1,13 +1,13 @@
-# hosted-api-daily-app
+# hosted-daily-app
 
-A full-stack example that demonstrates how to use the LemonSlice Hosted API in a simple web app. The hosted pipeline is a fully managed conversational AI service. Use it when you want to control the frontend experience while letting LemonSlice handle everything else.
+A full-stack example that demonstrates how to use the LemonSlice Hosted Pipeline in a simple web app. The hosted pipeline is a fully managed conversational AI service. Use it when you want to control the frontend experience while letting LemonSlice handle everything else.
 
 
 ## Overview
 
 This example showcases how to:
 
-- Securely connect to the LemonSlice Hosted API
+- Securely run a LemonSlice Hosted Pipeline
 - Create Daily rooms and integrate them with a LemonSlice agent
 - Join video calls with the agent
 - Send messages to agents
@@ -58,7 +58,7 @@ This application consists of two parts:
 
 ## Creating a Room
 
-The application creates a Daily room by calling the LemonSlice Hosted API through the backend server. Here's how it works:
+The application creates a Daily room by calling the LemonSlice API through the backend server. Here's how it works:
 
 ### Backend Server (`backend/server.py`)
 
