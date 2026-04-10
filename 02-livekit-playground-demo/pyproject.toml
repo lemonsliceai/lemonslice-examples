@@ -1,0 +1,11 @@
+[project]
+name = "livekit-playground-demo"
+version = "1.0.0"
+description = "A LemonSlice example using LiveKit's LemonSlice plugin and playground"
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "livekit-agents[lemonslice]>=1.4.5",
+    "livekit-plugins-noise-cancellation>=0.2.5",
+    "python-dotenv>=1.2.1",
+]
