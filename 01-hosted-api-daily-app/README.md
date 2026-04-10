@@ -1,4 +1,4 @@
-# hosted-api-app
+# hosted-api-daily-app
 
 A full-stack example that demonstrates how to use the LemonSlice Hosted API in a simple web app. The hosted pipeline is a fully managed conversational AI service. Use it when you want to control the frontend experience while letting LemonSlice handle everything else.
 

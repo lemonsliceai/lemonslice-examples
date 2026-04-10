@@ -4,7 +4,7 @@ A collection of LemonSlice API integration examples.
 
 ## Folder Structure
 
-### [01-hosted-api-app](./01-hosted-api-app/)
+### [01-hosted-api-daily-app](./01-hosted-api-daily-app/)
 
 Demonstrates how to use the LemonSlice Hosted API in a simple web app. The hosted pipeline is a fully managed conversational AI service. Use it when you want to control the frontend experience while letting LemonSlice handle everything else.
 
