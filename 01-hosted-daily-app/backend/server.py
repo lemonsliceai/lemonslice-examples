@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -6,8 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 LEMON_SLICE_CREATE_ROOM_ENDPOINT = "https://lemonslice.com/api/rooms"
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from project root.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(PROJECT_ROOT / ".env.local")
+load_dotenv(PROJECT_ROOT / ".env")
 
 app = FastAPI()
 
