@@ -98,7 +98,6 @@ async def _create_session(request: SessionRequest) -> dict[str, str]:
     groq_api_key = _required_env("GROQ_API_KEY")
     elevenlabs_api_key = _required_env("ELEVENLABS_API_KEY")
     elevenlabs_voice_id = _required_env("ELEVENLABS_VOICE_ID")
-    bot_name = os.getenv("PIPECAT_BOT_NAME", "Pipecat")
     agent_id = os.getenv("LEMONSLICE_AGENT_ID")
     agent_image_url = os.getenv("LEMONSLICE_AGENT_IMAGE_URL")
 
@@ -107,7 +106,7 @@ async def _create_session(request: SessionRequest) -> dict[str, str]:
 
     http_session = aiohttp.ClientSession()
     transport = LemonSliceTransport(
-        bot_name=bot_name,
+        bot_name="Pipecat",
         api_key=lemonslice_api_key,
         session=http_session,
         session_request=LemonSliceNewSessionRequest(

@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import DailyIframe from "@daily-co/daily-js";
+import {
+  DailyProvider,
+  useCallObject,
+  useDaily,
+  useDailyEvent,
+  useMeetingState,
+} from "@daily-co/daily-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AgentVideoView } from "@/components/agent-call/AgentVideoView";
@@ -57,17 +63,17 @@ export interface AgentCallUIProps {
   className?: string;
 }
 
-export default function AgentCallUI({
+function AgentCallUIInner({
   customActiveWidth,
   customActiveHeight,
   placeholderVideoUrl,
   className,
 }: AgentCallUIProps) {
-  const callRef = useRef<ReturnType<typeof DailyIframe.createCallObject> | null>(null);
+  const callObject = useDaily();
+  const meetingState = useMeetingState();
   const [sessionState, setSessionState] = useState<{ roomUrl: string; token: string } | null>(null);
   const [participants, setParticipants] = useState<DailyParticipant[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
   const [micEnabled, setMicEnabled] = useState(true);
   const [micPending, setMicPending] = useState(false);
   const [message, setMessage] = useState("");
@@ -81,15 +87,15 @@ export default function AgentCallUI({
   });
 
   const updateParticipants = useCallback(() => {
-    if (!callRef.current) return;
-    const entries = Object.values(callRef.current.participants() ?? {}) as DailyParticipant[];
+    if (!callObject) return;
+    const entries = Object.values(callObject.participants() ?? {}) as DailyParticipant[];
     console.log("[AgentCallUI] updateParticipants", {
       total: entries.length,
       remote: entries.filter((p) => !p.local).length,
       participants: entries.map((p) => p.user_name ?? p.session_id ?? "unknown"),
     });
     setParticipants(entries);
-  }, []);
+  }, [callObject]);
 
   const clearToastTimeout = useCallback(() => {
     if (toastTimeoutRef.current) {
@@ -115,26 +121,18 @@ export default function AgentCallUI({
 
   const stopSession = useCallback(async () => {
     console.log("[AgentCallUI] stopSession start");
-    if (callRef.current) {
+    if (callObject) {
       try {
         console.log("[AgentCallUI] leaving meeting");
-        await callRef.current.leave();
+        await callObject.leave();
       } catch {
         // Ignore leave failures during teardown.
       }
-      try {
-        console.log("[AgentCallUI] destroying call object");
-        callRef.current.destroy();
-      } catch {
-        // Ignore destroy failures during teardown.
-      }
-      callRef.current = null;
     }
     clearToastTimeout();
     setToastVisible(false);
     setToastMessage("");
     setParticipants([]);
-    setIsConnected(false);
     setSessionState(null);
     try {
       await fetch("/api/session", { method: "DELETE" });
@@ -142,7 +140,7 @@ export default function AgentCallUI({
       // Backend might already be gone; safe to ignore.
     }
     console.log("[AgentCallUI] stopSession complete");
-  }, [clearToastTimeout]);
+  }, [callObject, clearToastTimeout]);
 
   useEffect(() => {
     if (customActiveWidth !== undefined && customActiveHeight !== undefined) return;
@@ -181,7 +179,7 @@ export default function AgentCallUI({
   }, [audioTrack]);
 
   const handleStartCall = useCallback(async () => {
-    if (isConnecting) return;
+    if (isConnecting || !callObject) return;
     console.log("[AgentCallUI] handleStartCall");
     setIsConnecting(true);
     try {
@@ -192,42 +190,13 @@ export default function AgentCallUI({
       const token = data.token;
       console.log("[AgentCallUI] session created", { roomUrl });
 
-      const call = DailyIframe.createCallObject();
-      callRef.current = call;
-      console.log("[AgentCallUI] call object created");
+      console.log("[AgentCallUI] call object ready");
       // Mount call UI immediately so participant/audio events are reflected without waiting
       // for the full Daily join lifecycle to settle.
       setSessionState({ roomUrl, token });
 
-      call.on("joined-meeting", (event) => {
-        console.log("[AgentCallUI] event joined-meeting", event);
-        setIsConnected(true);
-        updateParticipants();
-      });
-      call.on("left-meeting", (event) => {
-        console.log("[AgentCallUI] event left-meeting", event);
-        setIsConnected(false);
-      });
-      call.on("participant-joined", (event) => {
-        console.log("[AgentCallUI] event participant-joined", event);
-        updateParticipants();
-      });
-      call.on("participant-updated", (event) => {
-        console.log("[AgentCallUI] event participant-updated", event);
-        updateParticipants();
-      });
-      call.on("participant-left", (event) => {
-        console.log("[AgentCallUI] event participant-left", event);
-        updateParticipants();
-      });
-      call.on("app-message", (ev: { data?: { text?: string; message?: string } }) => {
-        console.log("[AgentCallUI] event app-message", ev);
-        const text = ev?.data?.text ?? ev?.data?.message;
-        if (text) showToast(text);
-      });
-
       console.log("[AgentCallUI] joining meeting", { roomUrl });
-      await call.join({
+      await callObject.join({
         url: roomUrl,
         token,
         audioSource: true,
@@ -235,7 +204,7 @@ export default function AgentCallUI({
       });
       console.log("[AgentCallUI] join complete");
 
-      setMicEnabled(Boolean(call.localAudio()));
+      setMicEnabled(Boolean(callObject.localAudio()));
       updateParticipants();
     } catch (error) {
       console.error(error);
@@ -244,26 +213,26 @@ export default function AgentCallUI({
       console.log("[AgentCallUI] start call flow complete");
       setIsConnecting(false);
     }
-  }, [isConnecting, showToast, stopSession, updateParticipants]);
+  }, [callObject, isConnecting, stopSession, updateParticipants]);
 
   const handleToggleMic = useCallback(async () => {
-    if (!callRef.current) return;
+    if (!callObject) return;
     console.log("[AgentCallUI] handleToggleMic", { current: micEnabled, next: !micEnabled });
     setMicPending(true);
     try {
       const nextValue = !micEnabled;
-      await callRef.current.setLocalAudio(nextValue);
+      await callObject.setLocalAudio(nextValue);
       setMicEnabled(nextValue);
     } catch (error) {
       console.error("Failed to toggle mic", error);
     } finally {
       setMicPending(false);
     }
-  }, [micEnabled]);
+  }, [callObject, micEnabled]);
 
   const handleSendMessage = useCallback(async () => {
     const text = message.trim();
-    if (!text || !callRef.current) return;
+    if (!text || !callObject) return;
     console.log("[AgentCallUI] handleSendMessage", { text });
     setMessage("");
     showToast(text);
@@ -280,7 +249,7 @@ export default function AgentCallUI({
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Failed to send message");
     }
-  }, [message, showToast]);
+  }, [callObject, message, showToast]);
 
   const activeWidth = customActiveWidth ?? activeSize.width;
   const activeHeight = customActiveHeight ?? activeSize.height;
@@ -294,8 +263,8 @@ export default function AgentCallUI({
   }, [isConnecting]);
 
   useEffect(() => {
-    console.log("[AgentCallUI] state isConnected", isConnected);
-  }, [isConnected]);
+    console.log("[AgentCallUI] state meetingState", meetingState);
+  }, [meetingState]);
 
   useEffect(() => {
     console.log("[AgentCallUI] state sessionState", sessionState);
@@ -315,6 +284,58 @@ export default function AgentCallUI({
   useEffect(() => {
     console.log("[AgentCallUI] state videoTrack", videoTrack?.id ?? null);
   }, [videoTrack]);
+
+  const onJoinedMeeting = useCallback(
+    (event: unknown) => {
+      console.log("[AgentCallUI] event joined-meeting", event);
+      updateParticipants();
+    },
+    [updateParticipants],
+  );
+
+  const onLeftMeeting = useCallback((event: unknown) => {
+    console.log("[AgentCallUI] event left-meeting", event);
+  }, []);
+
+  const onParticipantJoined = useCallback(
+    (event: unknown) => {
+      console.log("[AgentCallUI] event participant-joined", event);
+      updateParticipants();
+    },
+    [updateParticipants],
+  );
+
+  const onParticipantUpdated = useCallback(
+    (event: unknown) => {
+      console.log("[AgentCallUI] event participant-updated", event);
+      updateParticipants();
+    },
+    [updateParticipants],
+  );
+
+  const onParticipantLeft = useCallback(
+    (event: unknown) => {
+      console.log("[AgentCallUI] event participant-left", event);
+      updateParticipants();
+    },
+    [updateParticipants],
+  );
+
+  const onAppMessage = useCallback(
+    (event: { data?: { text?: string; message?: string } }) => {
+      console.log("[AgentCallUI] event app-message", event);
+      const text = event?.data?.text ?? event?.data?.message;
+      if (text) showToast(text);
+    },
+    [showToast],
+  );
+
+  useDailyEvent("joined-meeting", onJoinedMeeting);
+  useDailyEvent("left-meeting", onLeftMeeting);
+  useDailyEvent("participant-joined", onParticipantJoined);
+  useDailyEvent("participant-updated", onParticipantUpdated);
+  useDailyEvent("participant-left", onParticipantLeft);
+  useDailyEvent("app-message", onAppMessage);
 
   if (!sessionState?.roomUrl) {
     return (
@@ -370,5 +391,14 @@ export default function AgentCallUI({
         )}
       </div>
     </div>
+  );
+}
+
+export default function AgentCallUI(props: AgentCallUIProps) {
+  const callObject = useCallObject({});
+  return (
+    <DailyProvider callObject={callObject}>
+      <AgentCallUIInner {...props} />
+    </DailyProvider>
   );
 }
