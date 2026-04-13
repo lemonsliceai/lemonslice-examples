@@ -28,13 +28,8 @@ type DailyParticipant = {
 };
 
 function isAvatarParticipant(p: DailyParticipant): boolean {
-  const userName = p.user_name?.toLowerCase() ?? "";
-  const sessionId = p.session_id?.toLowerCase() ?? "";
-  return (
-    userName.includes("lemonslice") ||
-    userName.includes("pipecat") ||
-    sessionId.includes("lemonslice-avatar")
-  );
+  const userName = p.user_name?.trim().toLowerCase() ?? "";
+  return userName === "pipecat";
 }
 
 function pickRemoteVideoTrack(participants: DailyParticipant[]): MediaStreamTrack | null {
