@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
+  useAudioTrack,
   DailyProvider,
   useCallObject,
   useDaily,
   useDailyEvent,
-  useMeetingState,
+  useParticipantIds,
+  useVideoTrack,
 } from "@daily-co/daily-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,43 +20,10 @@ const WIDGET_ASPECT_RATIO = 2 / 3;
 const DEFAULT_PLACEHOLDER_VIDEO = null;
 
 type DailyParticipant = {
-  session_id?: string;
   local?: boolean;
   user_name?: string;
-  tracks?: {
-    audio?: {
-      state?: string;
-      track?: MediaStreamTrack | null;
-    };
-    video?: {
-      state?: string;
-      track?: MediaStreamTrack | null;
-    };
-  };
+  participantType?: string;
 };
-
-function isAvatarParticipant(p: DailyParticipant): boolean {
-  const userName = p.user_name?.trim().toLowerCase() ?? "";
-  return userName === "pipecat";
-}
-
-function pickRemoteVideoTrack(participants: DailyParticipant[]): MediaStreamTrack | null {
-  const avatarParticipant =
-    participants.find((p) => !p.local && isAvatarParticipant(p) && p.tracks?.video?.track) ?? null;
-  const fallback =
-    participants.find((p) => !p.local && p.tracks?.video?.track && p.tracks.video.state === "playable") ??
-    null;
-  return avatarParticipant?.tracks?.video?.track ?? fallback?.tracks?.video?.track ?? null;
-}
-
-function pickRemoteAudioTrack(participants: DailyParticipant[]): MediaStreamTrack | null {
-  const avatarParticipant =
-    participants.find((p) => !p.local && isAvatarParticipant(p) && p.tracks?.audio?.track) ?? null;
-  const fallback =
-    participants.find((p) => !p.local && p.tracks?.audio?.track && p.tracks.audio.state === "playable") ??
-    null;
-  return avatarParticipant?.tracks?.audio?.track ?? fallback?.tracks?.audio?.track ?? null;
-}
 
 export interface AgentCallUIProps {
   customActiveWidth?: number;
@@ -70,9 +39,7 @@ function AgentCallUIInner({
   className,
 }: AgentCallUIProps) {
   const callObject = useDaily();
-  const meetingState = useMeetingState();
   const [sessionState, setSessionState] = useState<{ roomUrl: string; token: string } | null>(null);
-  const [participants, setParticipants] = useState<DailyParticipant[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
   const [micEnabled, setMicEnabled] = useState(true);
   const [micPending, setMicPending] = useState(false);
@@ -86,17 +53,6 @@ function AgentCallUIInner({
     height: customActiveHeight ?? 480,
   });
 
-  const updateParticipants = useCallback(() => {
-    if (!callObject) return;
-    const entries = Object.values(callObject.participants() ?? {}) as DailyParticipant[];
-    console.log("[AgentCallUI] updateParticipants", {
-      total: entries.length,
-      remote: entries.filter((p) => !p.local).length,
-      participants: entries.map((p) => p.user_name ?? p.session_id ?? "unknown"),
-    });
-    setParticipants(entries);
-  }, [callObject]);
-
   const clearToastTimeout = useCallback(() => {
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current);
@@ -106,7 +62,6 @@ function AgentCallUIInner({
 
   const showToast = useCallback(
     (text: string, duration = 3000) => {
-      console.log("[AgentCallUI] showToast", { text, duration });
       clearToastTimeout();
       setToastMessage(text);
       setToastVisible(true);
@@ -120,10 +75,8 @@ function AgentCallUIInner({
   );
 
   const stopSession = useCallback(async () => {
-    console.log("[AgentCallUI] stopSession start");
     if (callObject) {
       try {
-        console.log("[AgentCallUI] leaving meeting");
         await callObject.leave();
       } catch {
         // Ignore leave failures during teardown.
@@ -132,14 +85,12 @@ function AgentCallUIInner({
     clearToastTimeout();
     setToastVisible(false);
     setToastMessage("");
-    setParticipants([]);
     setSessionState(null);
     try {
       await fetch("/api/session", { method: "DELETE" });
     } catch {
       // Backend might already be gone; safe to ignore.
     }
-    console.log("[AgentCallUI] stopSession complete");
   }, [callObject, clearToastTimeout]);
 
   useEffect(() => {
@@ -165,7 +116,15 @@ function AgentCallUIInner({
     };
   }, [stopSession]);
 
-  const audioTrack = pickRemoteAudioTrack(participants);
+  const avatarParticipantIds = useParticipantIds({
+    filter: (p: DailyParticipant) =>
+      !p.local && (p.user_name?.trim().toLowerCase() === "lemonslice"),
+  });
+  const selectedRemoteParticipantId = avatarParticipantIds[0] ?? null;
+  const audioTrackState = useAudioTrack(selectedRemoteParticipantId ?? "local");
+  const videoTrackState = useVideoTrack(selectedRemoteParticipantId ?? "local");
+  const audioTrack = selectedRemoteParticipantId ? (audioTrackState.track ?? null) : null;
+  const videoTrack = selectedRemoteParticipantId ? (videoTrackState.track ?? null) : null;
 
   useEffect(() => {
     const el = remoteAudioRef.current;
@@ -180,7 +139,6 @@ function AgentCallUIInner({
 
   const handleStartCall = useCallback(async () => {
     if (isConnecting || !callObject) return;
-    console.log("[AgentCallUI] handleStartCall");
     setIsConnecting(true);
     try {
       const res = await fetch("/api/session", { method: "POST" });
@@ -188,36 +146,29 @@ function AgentCallUIInner({
       const data = (await res.json()) as { room_url: string; token: string };
       const roomUrl = data.room_url;
       const token = data.token;
-      console.log("[AgentCallUI] session created", { roomUrl });
 
-      console.log("[AgentCallUI] call object ready");
       // Mount call UI immediately so participant/audio events are reflected without waiting
       // for the full Daily join lifecycle to settle.
       setSessionState({ roomUrl, token });
 
-      console.log("[AgentCallUI] joining meeting", { roomUrl });
       await callObject.join({
         url: roomUrl,
         token,
         audioSource: true,
         videoSource: false,
       });
-      console.log("[AgentCallUI] join complete");
 
       setMicEnabled(Boolean(callObject.localAudio()));
-      updateParticipants();
     } catch (error) {
       console.error(error);
       await stopSession();
     } finally {
-      console.log("[AgentCallUI] start call flow complete");
       setIsConnecting(false);
     }
-  }, [callObject, isConnecting, stopSession, updateParticipants]);
+  }, [callObject, isConnecting, stopSession]);
 
   const handleToggleMic = useCallback(async () => {
     if (!callObject) return;
-    console.log("[AgentCallUI] handleToggleMic", { current: micEnabled, next: !micEnabled });
     setMicPending(true);
     try {
       const nextValue = !micEnabled;
@@ -233,7 +184,6 @@ function AgentCallUIInner({
   const handleSendMessage = useCallback(async () => {
     const text = message.trim();
     if (!text || !callObject) return;
-    console.log("[AgentCallUI] handleSendMessage", { text });
     setMessage("");
     showToast(text);
     try {
@@ -254,87 +204,17 @@ function AgentCallUIInner({
   const activeWidth = customActiveWidth ?? activeSize.width;
   const activeHeight = customActiveHeight ?? activeSize.height;
   const placeholderVideo = placeholderVideoUrl ?? DEFAULT_PLACEHOLDER_VIDEO;
-  const avatarJoined = participants.some((p) => !p.local && isAvatarParticipant(p));
+  const avatarJoined = avatarParticipantIds.length > 0;
   const compactLayout = !avatarJoined;
-  const videoTrack = pickRemoteVideoTrack(participants);
-
-  useEffect(() => {
-    console.log("[AgentCallUI] state isConnecting", isConnecting);
-  }, [isConnecting]);
-
-  useEffect(() => {
-    console.log("[AgentCallUI] state meetingState", meetingState);
-  }, [meetingState]);
-
-  useEffect(() => {
-    console.log("[AgentCallUI] state sessionState", sessionState);
-  }, [sessionState]);
-
-  useEffect(() => {
-    console.log("[AgentCallUI] state participants", {
-      total: participants.length,
-      avatarJoined,
-    });
-  }, [participants, avatarJoined]);
-
-  useEffect(() => {
-    console.log("[AgentCallUI] state compactLayout", compactLayout);
-  }, [compactLayout]);
-
-  useEffect(() => {
-    console.log("[AgentCallUI] state videoTrack", videoTrack?.id ?? null);
-  }, [videoTrack]);
-
-  const onJoinedMeeting = useCallback(
-    (event: unknown) => {
-      console.log("[AgentCallUI] event joined-meeting", event);
-      updateParticipants();
-    },
-    [updateParticipants],
-  );
-
-  const onLeftMeeting = useCallback((event: unknown) => {
-    console.log("[AgentCallUI] event left-meeting", event);
-  }, []);
-
-  const onParticipantJoined = useCallback(
-    (event: unknown) => {
-      console.log("[AgentCallUI] event participant-joined", event);
-      updateParticipants();
-    },
-    [updateParticipants],
-  );
-
-  const onParticipantUpdated = useCallback(
-    (event: unknown) => {
-      console.log("[AgentCallUI] event participant-updated", event);
-      updateParticipants();
-    },
-    [updateParticipants],
-  );
-
-  const onParticipantLeft = useCallback(
-    (event: unknown) => {
-      console.log("[AgentCallUI] event participant-left", event);
-      updateParticipants();
-    },
-    [updateParticipants],
-  );
 
   const onAppMessage = useCallback(
     (event: { data?: { text?: string; message?: string } }) => {
-      console.log("[AgentCallUI] event app-message", event);
       const text = event?.data?.text ?? event?.data?.message;
       if (text) showToast(text);
     },
     [showToast],
   );
 
-  useDailyEvent("joined-meeting", onJoinedMeeting);
-  useDailyEvent("left-meeting", onLeftMeeting);
-  useDailyEvent("participant-joined", onParticipantJoined);
-  useDailyEvent("participant-updated", onParticipantUpdated);
-  useDailyEvent("participant-left", onParticipantLeft);
   useDailyEvent("app-message", onAppMessage);
 
   if (!sessionState?.roomUrl) {

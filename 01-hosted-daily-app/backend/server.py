@@ -39,7 +39,6 @@ async def create_room():
                 },
                 json={"agent_id": agent_id},
             )
-            print("JBP: response", response)
             response.raise_for_status()
             data = response.json()
             return {"room_url": data["room_url"]}

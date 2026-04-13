@@ -171,10 +171,6 @@ async def _create_session(request: SessionRequest) -> dict[str, str]:
     @transport.event_handler("on_client_connected")
     async def on_client_connected(transport: LemonSliceTransport, participant: Any):
         logger.info(f"Client connected: {participant.get('id')}")
-        context.add_message(
-            {"role": "developer", "content": "Start by greeting the user and ask how you can help."}
-        )
-        await task.queue_frames([LLMRunFrame()])
 
     @transport.event_handler("on_client_disconnected")
     async def on_client_disconnected(transport: LemonSliceTransport, participant: Any):
@@ -184,6 +180,10 @@ async def _create_session(request: SessionRequest) -> dict[str, str]:
     @transport.event_handler("on_avatar_connected")
     async def on_avatar_connected(transport: LemonSliceTransport, participant: Any):
         logger.info(f"Avatar connected: {participant.get('id')}")
+        context.add_message(
+            {"role": "developer", "content": "Start by greeting the user and ask how you can help."}
+        )
+        await task.queue_frames([LLMRunFrame()])
 
     @transport.event_handler("on_avatar_disconnected")
     async def on_avatar_disconnected(
