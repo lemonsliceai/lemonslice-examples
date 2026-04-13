@@ -20,6 +20,10 @@ End-to-end example showing how to use the LemonSlice Self-Managed Pipeline with 
 
 Same as `03-livekit-app-python`, but the LiveKit/LemonSlice agent is hosted with the [LiveKit Node.js SDK](https://github.com/livekit/agents-js).
 
+### [05-pipecat-app](./05-pipecat-app/)
+
+End-to-end self-managed example using [Pipecat](https://www.pipecat.ai/) with LemonSlice transport and a Next.js frontend that joins the Daily room.
+
 ## Getting Started
 
 Each folder is self-contained with its own setup guide. Open the folder you want and follow its README.

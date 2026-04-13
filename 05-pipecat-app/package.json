@@ -1,0 +1,38 @@
+{
+  "name": "lemonslice-pipecat-nextjs-example",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "dev:agent": "cd agent && uv run uvicorn src.server:app --reload --host 127.0.0.1 --port 7860",
+    "dev:all": "concurrently -n web,agent -c green,cyan \"npm run dev\" \"npm run dev:agent\"",
+    "build": "next build",
+    "build:agent": "cd agent && uv sync",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@daily-co/daily-js": "^0.89.1",
+    "@heroicons/react": "^2.2.0",
+    "@radix-ui/react-slot": "^1.2.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.0.1",
+    "next": "16.2.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "tailwind-merge": "^3.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.27",
+    "concurrently": "^9.1.2",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.1",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5"
+  }
+}
