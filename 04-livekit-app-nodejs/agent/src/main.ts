@@ -29,6 +29,10 @@ dotenv.config({ path: path.join(repoRoot, ".env.local") });
 
 const AGENT_IMAGE_URL =
   "https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/inf2-image-uploads/image_9d0f6-WhaKqLKTzfVHlfe5jXzHE8Rpi9peF4.jpg";
+const AGENT_NAME = process.env.AGENT_NAME;
+if (!AGENT_NAME) {
+  throw new Error("Missing required env var: AGENT_NAME");
+}
 
 const ASSISTANT_INSTRUCTIONS = `
 You are Jess, an AI avatar powered by LemonSlice. 
@@ -107,5 +111,6 @@ export default defineAgent({
 cli.runApp(
   new ServerOptions({
     agent: fileURLToPath(import.meta.url),
+    agentName: AGENT_NAME,
   }),
 );

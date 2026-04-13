@@ -9,7 +9,7 @@
  *    we disconnect and return to pre-join.
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -37,18 +37,6 @@ const WIDGET_ASPECT_RATIO = 2 / 3;
 const TOPIC_CHAT = "lk.chat";
 
 const DEFAULT_PLACEHOLDER_VIDEO = "/welcome.mp4";
-
-/** Decorative / secondary participant published by some agent setups. */
-const AGENT_AVATAR_IDENTITY_MARKER = "lemonslice-avatar";
-
-function getMainAgentIdentity(participants: RemoteParticipant[]): string | null {
-  const main = participants.find((p) => !p.identity.includes(AGENT_AVATAR_IDENTITY_MARKER));
-  return main?.identity ?? participants[0]?.identity ?? null;
-}
-
-function isLemonSliceAvatarParticipant(p: Participant): boolean {
-  return p.identity.includes(AGENT_AVATAR_IDENTITY_MARKER);
-}
 
 function useRemoteAgentVideo() {
   const room = useRoomContext();
@@ -92,10 +80,7 @@ function ActiveCallPanel({
   const [toastVisible, setToastVisible] = useState(false);
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const agentIdentity = useMemo(
-    () => getMainAgentIdentity(remoteParticipants),
-    [remoteParticipants],
-  );
+  const agentIdentity = remoteParticipants[0]?.identity ?? null;
 
   const showToast = useCallback((text: string, duration = 3000) => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -125,21 +110,21 @@ function ActiveCallPanel({
   }, [room, showToast]);
 
   useEffect(() => {
-    const markAvatarJoined = (p: Participant) => {
-      if (isLemonSliceAvatarParticipant(p)) setAvatarJoined(true);
-    };
-    const syncExistingAvatars = () => {
-      for (const p of room.remoteParticipants.values()) markAvatarJoined(p);
+    const syncJoinedState = () => {
+      setAvatarJoined(room.remoteParticipants.size > 0);
     };
 
-    const onParticipantConnected = (p: Participant) => markAvatarJoined(p);
-    const onParticipantDisconnected = (p: Participant) => {
-      if (!isLemonSliceAvatarParticipant(p)) return;
+    const onParticipantConnected = (_p: Participant) => {
+      syncJoinedState();
+    };
+    const onParticipantDisconnected = (_p: Participant) => {
+      syncJoinedState();
+      if (room.remoteParticipants.size > 0) return;
       room.disconnect().catch(() => {});
       onAvatarDisconnected();
     };
 
-    syncExistingAvatars();
+    syncJoinedState();
     room.on(RoomEvent.ParticipantConnected, onParticipantConnected);
     room.on(RoomEvent.ParticipantDisconnected, onParticipantDisconnected);
     return () => {

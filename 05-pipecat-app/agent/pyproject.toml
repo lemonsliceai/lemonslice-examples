@@ -1,0 +1,13 @@
+[project]
+name = "lemonslice-pipecat-daily-agent"
+version = "0.1.0"
+description = "Pipecat + LemonSlice self-managed backend for Daily room sessions"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "aiohttp>=3.10.0",
+    "fastapi>=0.115.0",
+    "pipecat-ai[deepgram,elevenlabs,groq,lemonslice,silero] @ git+https://github.com/pipecat-ai/pipecat.git@31b5a64382fb90bc2b3ab8815679ebd167d8d994",
+    "python-dotenv>=1.0.0",
+    "uvicorn>=0.32.0",
+]

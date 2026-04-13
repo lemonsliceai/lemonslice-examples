@@ -22,6 +22,7 @@ class Assistant(Agent):
 server = AgentServer()
 
 
+# optionally, add 'agent_name="my_agent"' to the rtc_session decorator. this allows for explicit dispatching in the playground.
 @server.rtc_session()
 async def my_agent(ctx: agents.JobContext):
     # Register to Livekit room callbacks

@@ -7,6 +7,7 @@ From repo root: `npm run dev:agent` or `npm run dev:all`.
 
 from __future__ import annotations
 
+import os
 import pathlib
 
 from dotenv import load_dotenv
@@ -27,10 +28,10 @@ load_dotenv(_REPO_ROOT / ".env.local")
 # infra cannot reach will not work.
 #
 # Host the image on your app, blob storage, a CDN, etc.
-AGENT_IMAGE_URL = (
-    "https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/"
-    "inf2-image-uploads/image_9d0f6-WhaKqLKTzfVHlfe5jXzHE8Rpi9peF4.jpg"
-)
+AGENT_IMAGE_URL = "https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/inf2-image-uploads/image_9d0f6-WhaKqLKTzfVHlfe5jXzHE8Rpi9peF4.jpg"
+AGENT_NAME = os.getenv("AGENT_NAME")
+if not AGENT_NAME:
+    raise RuntimeError("Missing required env var: AGENT_NAME")
 
 ASSISTANT_INSTRUCTIONS = """
 You are Jess, an AI avatar powered by LemonSlice.
@@ -57,7 +58,7 @@ class Assistant(Agent):
 server = AgentServer()
 
 
-@server.rtc_session()
+@server.rtc_session(agent_name=AGENT_NAME)
 async def lemonslice_agent(ctx: agents.JobContext) -> None:
     session = AgentSession(
         llm=inference.LLM(model="openai/gpt-4o-mini"),
