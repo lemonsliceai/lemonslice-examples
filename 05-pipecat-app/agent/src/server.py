@@ -101,102 +101,118 @@ async def _create_session(request: SessionRequest) -> dict[str, str]:
     elevenlabs_api_key = _required_env("ELEVENLABS_API_KEY")
     elevenlabs_voice_id = _required_env("ELEVENLABS_VOICE_ID")
     http_session = aiohttp.ClientSession()
-    transport = LemonSliceTransport(
-        bot_name="Pipecat",
-        api_key=lemonslice_api_key,
-        session=http_session,
-        session_request=LemonSliceNewSessionRequest(
-            agent_image_url=AGENT_IMAGE_URL,
-            idle_timeout=int(os.getenv("LEMONSLICE_IDLE_TIMEOUT", "120")),
-            daily_room_url=request.daily_room_url,
-            daily_token=request.daily_token,
-        ),
-        params=LemonSliceParams(
-            audio_in_enabled=True,
-            audio_out_enabled=True,
-            microphone_out_enabled=False,
-        ),
-    )
-
-    stt = DeepgramSTTService(api_key=deepgram_api_key)
-    llm = GroqLLMService(
-        api_key=groq_api_key,
-        settings=GroqLLMService.Settings(
-            system_instruction=(
-                "You are a helpful assistant in a voice conversation. "
-                "Keep answers brief and natural for spoken delivery."
+    runner_task: asyncio.Task[None] | None = None
+    try:
+        transport = LemonSliceTransport(
+            bot_name="Pipecat",
+            api_key=lemonslice_api_key,
+            session=http_session,
+            session_request=LemonSliceNewSessionRequest(
+                agent_image_url=AGENT_IMAGE_URL,
+                idle_timeout=60,
+                daily_room_url=request.daily_room_url,
+                daily_token=request.daily_token,
             ),
-        ),
-    )
-    tts = ElevenLabsTTSService(
-        api_key=elevenlabs_api_key,
-        settings=ElevenLabsTTSService.Settings(
-            voice=elevenlabs_voice_id,
-        ),
-    )
-
-    context = LLMContext()
-    user_aggregator, assistant_aggregator = LLMContextAggregatorPair(
-        context,
-        user_params=LLMUserAggregatorParams(vad_analyzer=SileroVADAnalyzer()),
-    )
-
-    pipeline = Pipeline(
-        [
-            transport.input(),
-            stt,
-            user_aggregator,
-            llm,
-            tts,
-            transport.output(),
-            assistant_aggregator,
-        ]
-    )
-
-    task = PipelineTask(
-        pipeline,
-        params=PipelineParams(
-            audio_in_sample_rate=16000,
-            audio_out_sample_rate=16000,
-            enable_metrics=True,
-            enable_usage_metrics=True,
-        ),
-    )
-
-    @transport.event_handler("on_client_connected")
-    async def on_client_connected(transport: LemonSliceTransport, participant: Any):
-        logger.info(f"Client connected: {participant.get('id')}")
-
-    @transport.event_handler("on_client_disconnected")
-    async def on_client_disconnected(transport: LemonSliceTransport, participant: Any):
-        logger.info(f"Client disconnected: {participant.get('id')}")
-        await task.cancel()
-
-    @transport.event_handler("on_avatar_connected")
-    async def on_avatar_connected(transport: LemonSliceTransport, participant: Any):
-        logger.info(f"Avatar connected: {participant.get('id')}")
-        context.add_message(
-            {"role": "developer", "content": "Start by greeting the user and ask how you can help."}
+            params=LemonSliceParams(
+                audio_in_enabled=True,
+                audio_out_enabled=True,
+                microphone_out_enabled=False,
+            ),
         )
-        await task.queue_frames([LLMRunFrame()])
 
-    @transport.event_handler("on_avatar_disconnected")
-    async def on_avatar_disconnected(
-        transport: LemonSliceTransport, participant: Any, reason: str
-    ):
-        logger.info(f"Avatar disconnected: {reason}")
+        stt = DeepgramSTTService(api_key=deepgram_api_key)
+        llm = GroqLLMService(
+            api_key=groq_api_key,
+            settings=GroqLLMService.Settings(
+                system_instruction=(
+                    "You are a helpful assistant in a voice conversation. "
+                    "Keep answers brief and natural for spoken delivery."
+                ),
+            ),
+        )
+        tts = ElevenLabsTTSService(
+            api_key=elevenlabs_api_key,
+            settings=ElevenLabsTTSService.Settings(
+                voice=elevenlabs_voice_id,
+            ),
+        )
 
-    runner = PipelineRunner()
-    runner_task = asyncio.create_task(runner.run(task))
+        context = LLMContext()
+        user_aggregator, assistant_aggregator = LLMContextAggregatorPair(
+            context,
+            user_params=LLMUserAggregatorParams(vad_analyzer=SileroVADAnalyzer()),
+        )
 
-    _active_session = ActiveSession(
-        pipeline_task=task,
-        runner_task=runner_task,
-        http_session=http_session,
-        context=context,
-    )
+        pipeline = Pipeline(
+            [
+                transport.input(),
+                stt,
+                user_aggregator,
+                llm,
+                tts,
+                transport.output(),
+                assistant_aggregator,
+            ]
+        )
 
-    return {"room_url": request.daily_room_url}
+        task = PipelineTask(
+            pipeline,
+            params=PipelineParams(
+                audio_in_sample_rate=16000,
+                audio_out_sample_rate=16000,
+                enable_metrics=True,
+                enable_usage_metrics=True,
+            ),
+        )
+
+        @transport.event_handler("on_client_connected")
+        async def on_client_connected(transport: LemonSliceTransport, participant: Any):
+            logger.info(f"Client connected: {participant.get('id')}")
+
+        @transport.event_handler("on_client_disconnected")
+        async def on_client_disconnected(transport: LemonSliceTransport, participant: Any):
+            logger.info(f"Client disconnected: {participant.get('id')}")
+            await task.cancel()
+
+        @transport.event_handler("on_avatar_connected")
+        async def on_avatar_connected(transport: LemonSliceTransport, participant: Any):
+            logger.info(f"Avatar connected: {participant.get('id')}")
+            context.add_message(
+                {"role": "developer", "content": "Start by greeting the user and ask how you can help."}
+            )
+            await task.queue_frames([LLMRunFrame()])
+
+        @transport.event_handler("on_avatar_disconnected")
+        async def on_avatar_disconnected(
+            transport: LemonSliceTransport, participant: Any, reason: str
+        ):
+            logger.info(f"Avatar disconnected: {reason}")
+
+        runner = PipelineRunner()
+        runner_task = asyncio.create_task(runner.run(task))
+
+        _active_session = ActiveSession(
+            pipeline_task=task,
+            runner_task=runner_task,
+            http_session=http_session,
+            context=context,
+        )
+
+        return {"room_url": request.daily_room_url}
+    except Exception:
+        if runner_task is not None:
+            runner_task.cancel()
+            try:
+                await runner_task
+            except asyncio.CancelledError:
+                pass
+            except Exception as exc:
+                logger.warning(f"Error awaiting runner after failed session setup: {exc}")
+        try:
+            await http_session.close()
+        except Exception as exc:
+            logger.warning(f"Error closing aiohttp session after failed setup: {exc}")
+        raise
 
 
 @app.get("/healthz")

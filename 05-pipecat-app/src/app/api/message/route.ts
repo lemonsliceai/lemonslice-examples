@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const BACKEND_BASE_URL = process.env.PIPECAT_BACKEND_URL ?? "http://127.0.0.1:7860";
+import { BACKEND_BASE_URL } from "@/lib/pipecat-backend";
 
 export async function POST(request: NextRequest) {
   try {

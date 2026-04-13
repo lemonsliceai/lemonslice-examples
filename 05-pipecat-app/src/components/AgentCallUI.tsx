@@ -120,6 +120,7 @@ function AgentCallUIInner({
 
   const avatarParticipantIds = useParticipantIds({
     filter: (p: DailyParticipant) =>
+      // user_name set to "LemonSlice" by the Pipecat LemonSliceTransportClient
       !p.local && (p.user_name?.trim().toLowerCase() === "lemonslice"),
   });
   const selectedRemoteParticipantId = avatarParticipantIds[0] ?? null;

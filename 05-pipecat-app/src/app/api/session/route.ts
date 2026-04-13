@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-
-const BACKEND_BASE_URL = process.env.PIPECAT_BACKEND_URL ?? "http://127.0.0.1:7860";
+import { BACKEND_BASE_URL } from "@/lib/pipecat-backend";
 const DAILY_API_KEY = process.env.DAILY_API_KEY;
 const DAILY_API_BASE_URL = "https://api.daily.co/v1";
 
@@ -55,9 +54,24 @@ async function createDailyToken(roomName: string) {
   return payload.token as string;
 }
 
+async function tryDeleteDailyRoom(roomName: string) {
+  if (!DAILY_API_KEY) return;
+  try {
+    await fetch(`${DAILY_API_BASE_URL}/rooms/${encodeURIComponent(roomName)}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${DAILY_API_KEY}` },
+      cache: "no-store",
+    });
+  } catch {
+    // Best-effort cleanup for this example; room still expires via `exp`.
+  }
+}
+
 export async function POST() {
+  let cleanupRoomName: string | null = null;
   try {
     const { roomUrl, roomName } = await createDailyRoom();
+    cleanupRoomName = roomName;
     const token = await createDailyToken(roomName);
 
     const response = await fetch(`${BACKEND_BASE_URL}/session`, {
@@ -72,14 +86,18 @@ export async function POST() {
 
     const payload = await response.json();
     if (!response.ok) {
+      await tryDeleteDailyRoom(cleanupRoomName);
+      cleanupRoomName = null;
       return NextResponse.json(payload, { status: response.status });
     }
 
+    cleanupRoomName = null;
     return NextResponse.json({
       room_url: payload.room_url ?? roomUrl,
       token,
     });
   } catch (error) {
+    if (cleanupRoomName) await tryDeleteDailyRoom(cleanupRoomName);
     return NextResponse.json(
       {
         error: "Failed to start Pipecat session",

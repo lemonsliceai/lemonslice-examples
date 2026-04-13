@@ -49,7 +49,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Important: Pipecat from source
 
-This example installs `pipecat-ai` from GitHub source (`main`) in `agent/pyproject.toml` so `on_avatar_connected` / `on_avatar_disconnected` are available (not available in pipecat ≤0.0.108).
+This example installs `pipecat-ai` from GitHub source in `agent/pyproject.toml`. The pinned commit includes updates (e.g. registered `on_avatar_connect` events) that are not available in the latest pipecat release (v0.0.108 at the time of this writing).
 
 ## How it works
 
