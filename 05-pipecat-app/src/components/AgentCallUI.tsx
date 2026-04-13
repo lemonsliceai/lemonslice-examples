@@ -200,6 +200,9 @@ export default function AgentCallUI({
       const call = DailyIframe.createCallObject();
       callRef.current = call;
       console.log("[AgentCallUI] call object created");
+      // Mount call UI immediately so participant/audio events are reflected without waiting
+      // for the full Daily join lifecycle to settle.
+      setSessionState({ roomUrl, token });
 
       call.on("joined-meeting", (event) => {
         console.log("[AgentCallUI] event joined-meeting", event);
@@ -238,7 +241,6 @@ export default function AgentCallUI({
       console.log("[AgentCallUI] join complete");
 
       setMicEnabled(Boolean(call.localAudio()));
-      setSessionState({ roomUrl, token });
       updateParticipants();
     } catch (error) {
       console.error(error);
@@ -319,7 +321,7 @@ export default function AgentCallUI({
     console.log("[AgentCallUI] state videoTrack", videoTrack?.id ?? null);
   }, [videoTrack]);
 
-  if (!sessionState?.roomUrl || !isConnected) {
+  if (!sessionState?.roomUrl) {
     return (
       <PreJoinPreview
         placeholderVideo={placeholderVideo}
