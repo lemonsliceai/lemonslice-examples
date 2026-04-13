@@ -195,21 +195,6 @@ async def _create_session(request: SessionRequest) -> dict[str, str]:
     runner = PipelineRunner()
     runner_task = asyncio.create_task(runner.run(task))
 
-    room_url: str | None = request.daily_room_url
-    for _ in range(120):
-        daily_client = getattr(transport, "_client", None)
-        inner_client = getattr(daily_client, "_daily_transport_client", None)
-        if inner_client is not None:
-            room_url = inner_client.room_url
-            break
-        await asyncio.sleep(0.1)
-
-    if not room_url:
-        await task.cancel()
-        await runner_task
-        await http_session.close()
-        raise RuntimeError("Timed out waiting for Daily room URL from LemonSlice transport")
-
     _active_session = ActiveSession(
         pipeline_task=task,
         runner_task=runner_task,
@@ -217,7 +202,7 @@ async def _create_session(request: SessionRequest) -> dict[str, str]:
         context=context,
     )
 
-    return {"room_url": room_url}
+    return {"room_url": request.daily_room_url}
 
 
 @app.get("/healthz")
