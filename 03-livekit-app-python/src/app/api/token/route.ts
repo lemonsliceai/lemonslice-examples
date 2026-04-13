@@ -1,9 +1,12 @@
-import { AccessToken } from "livekit-server-sdk";
+import { AccessToken, RoomAgentDispatch, RoomConfiguration } from "livekit-server-sdk";
 import { type NextRequest, NextResponse } from "next/server";
+
+export const runtime = "nodejs";
 
 async function handleToken(request: NextRequest) {
   const url = request.nextUrl;
   const roomName = url.searchParams.get("room") ?? `room-${Date.now()}`;
+  const agentName = (process.env.AGENT_NAME ?? "").trim();
   const participantName =
     url.searchParams.get("participant") ??
     `user-${Math.random().toString(36).slice(2, 10)}`;
@@ -18,6 +21,13 @@ async function handleToken(request: NextRequest) {
       { status: 500 },
     );
   }
+  if (!agentName) {
+    return NextResponse.json(
+      { error: "Missing AGENT_NAME. Set it in .env.local." },
+      { status: 500 },
+    );
+  }
+  const roomMetadataJson = "{}";
 
   const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
     identity: participantName,
@@ -31,8 +41,18 @@ async function handleToken(request: NextRequest) {
     canSubscribe: true,
   });
 
+  at.roomConfig = new RoomConfiguration({
+    metadata: roomMetadataJson,
+    agents: [
+      new RoomAgentDispatch({
+        agentName,
+        metadata: roomMetadataJson,
+      }),
+    ],
+  });
+
   const token = await at.toJwt();
-  return NextResponse.json({ token, serverUrl: LIVEKIT_URL, room: roomName });
+  return NextResponse.json({ token, serverUrl: LIVEKIT_URL, room: roomName, agentName });
 }
 
 export async function GET(request: NextRequest) {

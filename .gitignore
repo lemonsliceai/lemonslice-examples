@@ -1,4 +1,6 @@
 .next
+next-env.d.ts
+tsconfig.tsbuildinfo
 
 # Logs
 logs
