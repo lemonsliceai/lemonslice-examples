@@ -38,6 +38,8 @@ load_dotenv(_REPO_ROOT / ".env.local")
 
 app = FastAPI(title="LemonSlice Pipecat Session API")
 
+AGENT_IMAGE_URL = "https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/inf2-image-uploads/image_9d0f6-WhaKqLKTzfVHlfe5jXzHE8Rpi9peF4.jpg"
+
 
 @dataclass
 class ActiveSession:
@@ -98,20 +100,13 @@ async def _create_session(request: SessionRequest) -> dict[str, str]:
     groq_api_key = _required_env("GROQ_API_KEY")
     elevenlabs_api_key = _required_env("ELEVENLABS_API_KEY")
     elevenlabs_voice_id = _required_env("ELEVENLABS_VOICE_ID")
-    agent_id = os.getenv("LEMONSLICE_AGENT_ID")
-    agent_image_url = os.getenv("LEMONSLICE_AGENT_IMAGE_URL")
-
-    if not agent_id and not agent_image_url:
-        raise RuntimeError("Set either LEMONSLICE_AGENT_ID or LEMONSLICE_AGENT_IMAGE_URL")
-
     http_session = aiohttp.ClientSession()
     transport = LemonSliceTransport(
         bot_name="Pipecat",
         api_key=lemonslice_api_key,
         session=http_session,
         session_request=LemonSliceNewSessionRequest(
-            agent_id=agent_id,
-            agent_image_url=agent_image_url,
+            agent_image_url=AGENT_IMAGE_URL,
             idle_timeout=int(os.getenv("LEMONSLICE_IDLE_TIMEOUT", "120")),
             daily_room_url=request.daily_room_url,
             daily_token=request.daily_token,

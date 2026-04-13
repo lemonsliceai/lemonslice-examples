@@ -22,7 +22,6 @@ cp .env.example .env.local
 2. Fill in:
 
 - `LEMONSLICE_API_KEY`
-- One of `LEMONSLICE_AGENT_ID` or `LEMONSLICE_AGENT_IMAGE_URL`
 - `DAILY_API_KEY`
 - `DEEPGRAM_API_KEY`
 - `GROQ_API_KEY`
@@ -50,7 +49,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Important: Pipecat from source
 
-This example installs `pipecat-ai` from GitHub source (`main`) in `agent/pyproject.toml` so `on_avatar_connected` / `on_avatar_disconnected` are available.
+This example installs `pipecat-ai` from GitHub source (`main`) in `agent/pyproject.toml` so `on_avatar_connected` / `on_avatar_disconnected` are available (not available in pipecat ≤0.0.108).
 
 ## How it works
 

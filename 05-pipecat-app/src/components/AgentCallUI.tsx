@@ -17,7 +17,7 @@ import { CallControlsBar } from "@/components/agent-call/CallControlsBar";
 import { PreJoinPreview } from "@/components/agent-call/PreJoinPreview";
 
 const WIDGET_ASPECT_RATIO = 2 / 3;
-const DEFAULT_PLACEHOLDER_VIDEO = null;
+const DEFAULT_PLACEHOLDER_VIDEO = "/welcome.mp4";
 
 type DailyParticipant = {
   local?: boolean;
@@ -43,6 +43,7 @@ function AgentCallUIInner({
   const [isConnecting, setIsConnecting] = useState(false);
   const [micEnabled, setMicEnabled] = useState(true);
   const [micPending, setMicPending] = useState(false);
+  const [isBotReady, setIsBotReady] = useState(false);
   const [message, setMessage] = useState("");
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
@@ -85,6 +86,7 @@ function AgentCallUIInner({
     clearToastTimeout();
     setToastVisible(false);
     setToastMessage("");
+    setIsBotReady(false);
     setSessionState(null);
     try {
       await fetch("/api/session", { method: "DELETE" });
@@ -140,6 +142,7 @@ function AgentCallUIInner({
   const handleStartCall = useCallback(async () => {
     if (isConnecting || !callObject) return;
     setIsConnecting(true);
+    setIsBotReady(false);
     try {
       const res = await fetch("/api/session", { method: "POST" });
       if (!res.ok) throw new Error("Failed to start Pipecat session");
@@ -205,10 +208,15 @@ function AgentCallUIInner({
   const activeHeight = customActiveHeight ?? activeSize.height;
   const placeholderVideo = placeholderVideoUrl ?? DEFAULT_PLACEHOLDER_VIDEO;
   const avatarJoined = avatarParticipantIds.length > 0;
-  const compactLayout = !avatarJoined;
+  const compactLayout = !(avatarJoined && isBotReady);
+  const displayVideoTrack = compactLayout ? null : videoTrack;
 
   const onAppMessage = useCallback(
-    (event: { data?: { text?: string; message?: string } }) => {
+    (event: { data?: { type?: string; text?: string; message?: string } }) => {
+      const eventType = event?.data?.type?.trim().toLowerCase().replace(/-/g, "_");
+      if (eventType === "bot_ready") {
+        setIsBotReady(true);
+      }
       const text = event?.data?.text ?? event?.data?.message;
       if (text) showToast(text);
     },
@@ -238,7 +246,7 @@ function AgentCallUIInner({
             width={activeWidth}
             height={activeHeight}
             placeholderVideoUrl={placeholderVideo}
-            agentVideoTrack={videoTrack}
+            agentVideoTrack={displayVideoTrack}
           />
           {toastVisible && toastMessage ? (
             <div className="absolute left-2 right-2 flex justify-center z-10" style={{ bottom: 16 }}>
