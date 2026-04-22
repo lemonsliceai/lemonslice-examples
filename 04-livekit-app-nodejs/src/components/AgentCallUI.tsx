@@ -4,8 +4,8 @@
  * LiveKit voice-agent UI.
  *
  * 1. **Pre-join** — No token yet; “Start call” fetches `/api/token`.
- * 2. **Ringing** — In room, waiting for the LemonSlice avatar (`ParticipantConnected`).
- * 3. **Active** — Avatar joined; full controls. If the avatar leaves (`ParticipantDisconnected`),
+ * 2. **Ringing** — In room, waiting for LemonSlice `bot_ready` on topic `lemonslice` (not mere participant join).
+ * 3. **Active** — Bot pipeline ready; full controls. If the avatar leaves (`ParticipantDisconnected`),
  *    we disconnect and return to pre-join.
  */
 
@@ -13,18 +13,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
+  useDataChannel,
   useTrackToggle,
   useRoomContext,
   useRemoteParticipants,
   useTracks,
 } from "@livekit/components-react";
-import {
-  Track,
-  RoomEvent,
-  isVideoTrack,
-  type Participant,
-  type RemoteParticipant,
-} from "livekit-client";
+import type { ReceivedDataMessage } from "@livekit/components-core";
+import { Track, RoomEvent, isVideoTrack, type Participant } from "livekit-client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AgentVideoView } from "@/components/agent-call/AgentVideoView";
@@ -35,6 +31,10 @@ const WIDGET_ASPECT_RATIO = 2 / 3;
 
 /** Text stream topic for agent chat */
 const TOPIC_CHAT = "lk.chat";
+
+/** LemonSlice data RPC topic — `bot_ready` indicates avatar video pipeline is warm. */
+const LEMONSLICE_RPC_TOPIC = "lemonslice";
+const BOT_READY_MSG_TYPE = "bot_ready";
 
 const DEFAULT_PLACEHOLDER_VIDEO = "/welcome.mp4";
 
@@ -53,7 +53,7 @@ function useRemoteAgentVideo() {
 }
 
 /**
- * In-room UI: ringing (compact) until the LemonSlice avatar connects, then full active call.
+ * In-room UI: ringing (compact) until LemonSlice sends `bot_ready`, then full active call.
  */
 function ActiveCallPanel({
   activeWidth,
@@ -109,26 +109,36 @@ function ActiveCallPanel({
     };
   }, [room, showToast]);
 
-  useEffect(() => {
-    const syncJoinedState = () => {
-      setAvatarJoined(room.remoteParticipants.size > 0);
-    };
+  const onLemonsliceData = useCallback((msg: ReceivedDataMessage<typeof LEMONSLICE_RPC_TOPIC>) => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(new TextDecoder().decode(msg.payload));
+    } catch {
+      return;
+    }
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      (parsed as { type?: unknown }).type !== BOT_READY_MSG_TYPE
+    ) {
+      return;
+    }
+    setAvatarJoined(true);
+  }, []);
 
-    const onParticipantConnected = (_p: Participant) => {
-      syncJoinedState();
-    };
+  /** Subscribes to the single shared data channel; `topic` filters to LemonSlice RPC only. */
+  useDataChannel(LEMONSLICE_RPC_TOPIC, onLemonsliceData);
+
+  useEffect(() => {
     const onParticipantDisconnected = (_p: Participant) => {
-      syncJoinedState();
       if (room.remoteParticipants.size > 0) return;
+      setAvatarJoined(false);
       room.disconnect().catch(() => {});
       onAvatarDisconnected();
     };
 
-    syncJoinedState();
-    room.on(RoomEvent.ParticipantConnected, onParticipantConnected);
     room.on(RoomEvent.ParticipantDisconnected, onParticipantDisconnected);
     return () => {
-      room.off(RoomEvent.ParticipantConnected, onParticipantConnected);
       room.off(RoomEvent.ParticipantDisconnected, onParticipantDisconnected);
     };
   }, [room, onAvatarDisconnected]);

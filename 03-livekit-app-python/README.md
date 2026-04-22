@@ -33,11 +33,13 @@ Project layout:
    cp .env.example .env.local
   ```
 
-  | Variable(s)                                            | Used by                                                                              |
-  | ------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-  | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | Next token route, agent room connection, and **LiveKit Inference** (STT + LLM + TTS) |
-  | `LEMONSLICE_API_KEY`                                   | Find this in your [LemonSlice account page](https://lemonslice.com/account).         |
+  | Variable(s)                                            | Used by                                                                                            |
+  | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+  | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | Next token route, agent room connection, and **LiveKit Inference** (STT + LLM + TTS)               |
+  | `AGENT_NAME`                                           | Worker registration / dispatch — include in `.env.local` (default `lemonslice` in `.env.example`). |
+  | `LEMONSLICE_API_KEY`                                   | Find this in your [LemonSlice account page](https://lemonslice.com/account).                       |
 
+  **Video ready** — Avatar video needs a few seconds. The agent sends a `bot_ready` RPC on the `lemonslice` data topic; the UI listens for that, then shows the full in-call layout with the live avatar (not on participant join alone).
 2. **Install** — install `[uv](https://docs.astral.sh/uv/getting-started/installation/)` first, then:
   ```bash
    npm install
@@ -79,16 +81,6 @@ Open [http://localhost:3000](http://localhost:3000) after **A** is up.
 ## How the token server works with LiveKit
 
 Browsers cannot safely hold `LIVEKIT_API_SECRET`. So **only your server** (here: `src/app/api/token/route.ts`) uses the secret to **sign** a JWT. The browser calls your app, gets `{ token, serverUrl, room }`, then the LiveKit client library connects to `serverUrl` (your `LIVEKIT_URL`) using `token`.
-
-What the route does, in order:
-
-1. Reads optional query params `room` and `participant`. If omitted, it picks a random room name and participant identity so you can open the page without thinking about names.
-2. Loads `LIVEKIT_URL`, `LIVEKIT_API_KEY`, and `LIVEKIT_API_SECRET` from the environment (same vars the agent uses to talk to the **same** LiveKit project).
-3. Builds an **access token** with `livekit-server-sdk`: identity, display name, TTL (here **1 hour**).
-4. **Grants** permission to join that specific room, **publish** (send mic/audio), and **subscribe** (hear/see others). That matches a normal user joining a voice/video room.
-5. Returns the signed JWT as `token`, plus `serverUrl` and `room` so the client knows where to connect and which room name to use.
-
-So: **LiveKit** trusts the JWT because it was signed with the API secret; **your backend** is the only place that secret exists. If you deploy to Vercel (or similar), set `LIVEKIT_*` in the host’s env — never expose the secret to client-side code or public repos.
 
 **Token API (reference)**
 
