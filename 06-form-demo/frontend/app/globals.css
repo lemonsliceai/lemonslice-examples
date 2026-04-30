@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    @apply m-0 h-full min-h-0 antialiased;
+  }
+
+  body {
+    @apply overflow-hidden bg-white font-sans text-accent;
+  }
+}
+
+@keyframes demo-confirm-backdrop-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes demo-confirm-card-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(-120vh) scaleX(0.1) scaleY(2);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleX(1) scaleY(1);
+  }
+}
+
+.demo-confirm-backdrop-enter {
+  animation: demo-confirm-backdrop-enter 280ms ease-out forwards;
+}
+
+.demo-confirm-card-enter {
+  transform-origin: top center;
+  will-change: transform, opacity;
+  animation: demo-confirm-card-enter 800ms cubic-bezier(0.12, 0.92, 0.2, 1) forwards;
+}
+
+/**
+ * Pre-connect UI uses Inter; document defaults are Manrope (`html` preflight + body `font-sans`).
+ * Apply Inter on the root and every descendant so buttons, links, and headings match—not only body copy.
+ */
+@layer utilities {
+  .preconnect-screen-root,
+  .preconnect-screen-root * {
+    font-family: var(--font-inter), system-ui, sans-serif;
+  }
+}
