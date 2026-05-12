@@ -31,6 +31,10 @@ Same as `03-livekit-app-python`, but the LiveKit/LemonSlice agent is implemented
 
 End-to-end example showing how to use the LemonSlice Self-Managed Pipeline with our [Pipecat](https://www.pipecat.ai/) integration. A Next.js frontend (same pre-join and in-call flow as the LiveKit examples) joins a Daily room; a Python FastAPI service runs Pipecat and wires the LemonSlice avatar into that pipeline.
 
+### [06-form-demo](./06-form-demo/)
+
+Rudimentary voice + chat SDR demo built on LiveKit and LemonSlice. A Next.js frontend renders a landing page plus agent sidebar, while a Python LiveKit agent runs the conversation logic and drives booking state (collect email, reveal calendar, confirm slot) over LiveKit data topics.
+
 ## Getting Started
 
 Each folder is self-contained with its own setup guide. Open the folder you want and follow its README.
