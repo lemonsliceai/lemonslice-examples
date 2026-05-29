@@ -33,7 +33,7 @@ End-to-end example showing how to use the LemonSlice Self-Managed Pipeline with 
 
 ### [06-form-demo](./06-form-demo/)
 
-Rudimentary voice + chat SDR demo built on LiveKit and LemonSlice. A Next.js frontend renders a landing page plus agent sidebar, while a Python LiveKit agent runs the conversation logic and drives booking state (collect email, reveal calendar, confirm slot) over LiveKit data topics.
+End-to-end example showcasing how to combine a LemonSlice avatar with tool calling in a LiveKit agent. We use an AI SDR workflow (email collection + meeting scheduling) as an example application. A Next.js frontend renders the landing page and agent sidebar, while a Python backend runs the conversation and tool-calling logic via LiveKit data topics.
 
 ## Getting Started
 
