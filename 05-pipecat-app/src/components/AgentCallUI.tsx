@@ -212,6 +212,22 @@ function AgentCallUIInner({
   const compactLayout = !(avatarJoined && isBotReady);
   const displayVideoTrack = compactLayout ? null : videoTrack;
 
+  useEffect(() => {
+    if (!compactLayout) return;
+    const audio = new Audio("/sounds/ring.m4a");
+    audio.volume = 0.5;
+    const play = () => {
+      audio.currentTime = 0;
+      void audio.play().catch(() => {});
+    };
+    play();
+    const id = setInterval(play, 2000);
+    return () => {
+      clearInterval(id);
+      audio.pause();
+    };
+  }, [compactLayout]);
+
   const onAppMessage = useCallback(
     (event: { data?: { type?: string; text?: string; message?: string } }) => {
       const eventType = event?.data?.type?.trim().toLowerCase().replace(/-/g, "_");
@@ -230,7 +246,6 @@ function AgentCallUIInner({
     return (
       <PreJoinPreview
         placeholderVideo={placeholderVideo}
-        isConnecting={isConnecting}
         onStartCall={handleStartCall}
         className={className}
       />
@@ -275,7 +290,7 @@ function AgentCallUIInner({
         {compactLayout && (
           <Button size="default" className="gap-2" disabled variant="secondary">
             <span className="size-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            Ringing...
+            Calling…
           </Button>
         )}
       </div>

@@ -4,7 +4,7 @@
  * LiveKit voice-agent UI.
  *
  * 1. **Pre-join** — No token yet; “Start call” fetches `/api/token`.
- * 2. **Ringing** — In room, waiting for LemonSlice `bot_ready` on topic `lemonslice` (not mere participant join).
+ * 2. **Calling** — In room, waiting for LemonSlice `bot_ready` on topic `lemonslice` (not mere participant join).
  * 3. **Active** — Bot pipeline ready; full controls. If the avatar leaves (`ParticipantDisconnected`),
  *    we disconnect and return to pre-join.
  */
@@ -53,7 +53,7 @@ function useRemoteAgentVideo() {
 }
 
 /**
- * In-room UI: ringing (compact) until LemonSlice sends `bot_ready`, then full active call.
+ * In-room UI: calling (compact) until LemonSlice sends `bot_ready`, then full active call.
  */
 function ActiveCallPanel({
   activeWidth,
@@ -74,6 +74,22 @@ function ActiveCallPanel({
 
   const [avatarJoined, setAvatarJoined] = useState(false);
   const compactLayout = !avatarJoined;
+
+  useEffect(() => {
+    if (!compactLayout) return;
+    const audio = new Audio("/sounds/ring.m4a");
+    audio.volume = 0.5;
+    const play = () => {
+      audio.currentTime = 0;
+      void audio.play().catch(() => {});
+    };
+    play();
+    const id = setInterval(play, 2000);
+    return () => {
+      clearInterval(id);
+      audio.pause();
+    };
+  }, [compactLayout]);
 
   const [message, setMessage] = useState("");
   const [toastMessage, setToastMessage] = useState("");
@@ -198,7 +214,7 @@ function ActiveCallPanel({
       {compactLayout && (
         <Button size="default" className="gap-2" disabled variant="secondary">
           <span className="size-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          Ringing…
+          Calling…
         </Button>
       )}
 
@@ -225,7 +241,6 @@ export default function AgentCallUI({
   className,
 }: AgentCallUIProps) {
   const [tokenState, setTokenState] = useState<{ token: string; serverUrl: string } | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
   const [activeSize, setActiveSize] = useState({
     width: customActiveWidth ?? 320,
     height: customActiveHeight ?? 480,
@@ -255,7 +270,6 @@ export default function AgentCallUI({
   }, [customActiveWidth, customActiveHeight]);
 
   const handleStartCall = useCallback(async () => {
-    setIsConnecting(true);
     try {
       const res = await fetch("/api/token");
       if (!res.ok) throw new Error("Token failed");
@@ -263,8 +277,6 @@ export default function AgentCallUI({
       setTokenState({ token: data.token, serverUrl: data.serverUrl });
     } catch (e) {
       console.error(e);
-    } finally {
-      setIsConnecting(false);
     }
   }, []);
 
@@ -286,7 +298,6 @@ export default function AgentCallUI({
     return (
       <PreJoinPreview
         placeholderVideo={placeholderVideo}
-        isConnecting={isConnecting}
         onStartCall={handleStartCall}
         className={className}
       />

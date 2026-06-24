@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
+const COMPACT_SIZE_PX = 250;
+
 type AgentVideoViewProps = {
   compact: boolean;
   width: number;
@@ -38,15 +40,32 @@ export function AgentVideoView({
   return (
     <div
       className={cn(
-        "relative overflow-hidden bg-muted flex items-center justify-center",
-        compact ? "rounded-full" : "rounded-3xl",
+        "relative flex items-center justify-center",
+        compact && "overflow-visible",
         className,
       )}
       style={{
-        width: compact ? 250 : width,
-        height: compact ? 250 : height,
+        width: compact ? COMPACT_SIZE_PX : width,
+        height: compact ? COMPACT_SIZE_PX : height,
       }}
     >
+      {compact ? (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-full border-2 border-foreground/25 origin-center animate-ring-ripple"
+        />
+      ) : null}
+      <div
+        className={cn(
+          "relative overflow-hidden bg-muted flex items-center justify-center",
+          compact ? "rounded-full" : "rounded-3xl",
+          compact && "z-[1]",
+        )}
+        style={{
+          width: compact ? COMPACT_SIZE_PX : width,
+          height: compact ? COMPACT_SIZE_PX : height,
+        }}
+      >
       {placeholderVideoUrl ? (
         <video
           src={placeholderVideoUrl}
@@ -67,9 +86,10 @@ export function AgentVideoView({
         />
       ) : (
         !placeholderVideoUrl && (
-          <div className="text-muted-foreground text-sm z-[1]">Waiting for agent...</div>
+          <div className="text-muted-foreground text-sm z-[1]">Waiting for agent…</div>
         )
       )}
+      </div>
     </div>
   );
 }
