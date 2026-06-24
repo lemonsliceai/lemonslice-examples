@@ -51,7 +51,7 @@ The LiveKit agents repo uses Git LFS for example assets that aren't needed to in
 
 ## Run the agent worker
 
-Start the worker locally (registers as agent name `zoom-avatar`):
+Start the worker locally (registers as agent name `zoom-bot`):
 
 ```bash
 uv run python agent.py dev
@@ -64,7 +64,7 @@ With the worker running, create a dispatch job with the meeting link and bot dis
 ```bash
 lk dispatch create \
   --new-room \
-  --agent-name zoom-avatar \
+  --agent-name zoom-bot \
   --metadata '{"meeting_url":"<MEETING LINK>", "bot_name": "My Avatar", "listen_to_meeting_chat": true}'
 ```
 
