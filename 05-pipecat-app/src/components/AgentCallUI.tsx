@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import {
   useAudioTrack,
   DailyProvider,
@@ -15,9 +15,27 @@ import { cn } from "@/lib/utils";
 import { AgentVideoView } from "@/components/agent-call/AgentVideoView";
 import { CallControlsBar } from "@/components/agent-call/CallControlsBar";
 import { PreJoinPreview } from "@/components/agent-call/PreJoinPreview";
+import { DEFAULT_PLACEHOLDER_URL } from "@/lib/constants";
 
-const WIDGET_ASPECT_RATIO = 2 / 3;
-const DEFAULT_PLACEHOLDER_VIDEO = "/welcome.mp4";
+const LANDSCAPE_ASPECT_RATIO = 16 / 9;
+
+function calcActiveFrameSize() {
+  if (typeof window === "undefined") return { width: 640, height: 360 };
+  const headerHeight = 24;
+  const isMobile = window.innerWidth < 640;
+  const bottomPadding = isMobile ? 140 : 72;
+  const horizontalPadding = 32;
+  const maxWidth = window.innerWidth - horizontalPadding;
+  const maxHeight = Math.floor((window.innerHeight - headerHeight - bottomPadding) * 0.96);
+
+  let height = maxHeight;
+  let width = Math.floor(height * LANDSCAPE_ASPECT_RATIO);
+  if (width > maxWidth) {
+    width = Math.floor(maxWidth);
+    height = Math.floor(width / LANDSCAPE_ASPECT_RATIO);
+  }
+  return { width, height };
+}
 
 type DailyParticipant = {
   local?: boolean;
@@ -49,9 +67,11 @@ function AgentCallUIInner({
   const [toastVisible, setToastVisible] = useState(false);
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
-  const [activeSize, setActiveSize] = useState({
-    width: customActiveWidth ?? 320,
-    height: customActiveHeight ?? 480,
+  const [activeSize, setActiveSize] = useState(() => {
+    if (customActiveWidth !== undefined && customActiveHeight !== undefined) {
+      return { width: customActiveWidth, height: customActiveHeight };
+    }
+    return calcActiveFrameSize();
   });
 
   const clearToastTimeout = useCallback(() => {
@@ -95,18 +115,9 @@ function AgentCallUIInner({
     }
   }, [callObject, clearToastTimeout]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (customActiveWidth !== undefined && customActiveHeight !== undefined) return;
-    const calc = () => {
-      if (typeof window === "undefined") return;
-      const headerHeight = 24;
-      const isMobile = window.innerWidth < 640;
-      const bottomPadding = isMobile ? 140 : 72;
-      const available = window.innerHeight - headerHeight - bottomPadding;
-      const maxHeight = Math.floor(available * 0.96);
-      const width = Math.floor(maxHeight * WIDGET_ASPECT_RATIO);
-      setActiveSize({ width, height: maxHeight });
-    };
+    const calc = () => setActiveSize(calcActiveFrameSize());
     calc();
     window.addEventListener("resize", calc);
     return () => window.removeEventListener("resize", calc);
@@ -207,13 +218,12 @@ function AgentCallUIInner({
 
   const activeWidth = customActiveWidth ?? activeSize.width;
   const activeHeight = customActiveHeight ?? activeSize.height;
-  const placeholderVideo = placeholderVideoUrl ?? DEFAULT_PLACEHOLDER_VIDEO;
+  const placeholderVideo = placeholderVideoUrl ?? DEFAULT_PLACEHOLDER_URL;
   const avatarJoined = avatarParticipantIds.length > 0;
   const compactLayout = !(avatarJoined && isBotReady);
-  const displayVideoTrack = compactLayout ? null : videoTrack;
 
   useEffect(() => {
-    if (!compactLayout) return;
+    if (!sessionState?.roomUrl || !compactLayout) return;
     const audio = new Audio("/sounds/ring.m4a");
     audio.volume = 0.5;
     const play = () => {
@@ -226,7 +236,7 @@ function AgentCallUIInner({
       clearInterval(id);
       audio.pause();
     };
-  }, [compactLayout]);
+  }, [sessionState?.roomUrl, compactLayout]);
 
   const onAppMessage = useCallback(
     (event: { data?: { type?: string; text?: string; message?: string } }) => {
@@ -262,7 +272,7 @@ function AgentCallUIInner({
             width={activeWidth}
             height={activeHeight}
             placeholderVideoUrl={placeholderVideo}
-            agentVideoTrack={displayVideoTrack}
+            agentVideoTrack={videoTrack}
           />
           {toastVisible && toastMessage ? (
             <div className="absolute left-2 right-2 flex justify-center z-10" style={{ bottom: 16 }}>

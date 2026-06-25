@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { VideoCameraIcon } from "@heroicons/react/16/solid";
 import { cn } from "@/lib/utils";
+import { PlaceholderMedia } from "@/components/agent-call/PlaceholderMedia";
 
 const PREVIEW_SIZE_PX = 250;
 
@@ -18,20 +19,15 @@ export function PreJoinPreview({
   return (
     <div className={cn("flex flex-col items-center gap-4", className)}>
       <div
-        className="rounded-full overflow-hidden bg-muted flex items-center justify-center"
+        className="relative overflow-hidden rounded-full bg-muted"
         style={{ width: PREVIEW_SIZE_PX, height: PREVIEW_SIZE_PX }}
       >
         {placeholderVideo ? (
-          <video
-            src={placeholderVideo}
-            className="w-full h-full object-cover"
-            playsInline
-            autoPlay
-            loop
-            muted
-          />
+          <PlaceholderMedia url={placeholderVideo} />
         ) : (
-          <span className="text-muted-foreground text-sm">No call</span>
+          <span className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
+            No call
+          </span>
         )}
       </div>
       <Button onClick={onStartCall} size="default" className="gap-2">
