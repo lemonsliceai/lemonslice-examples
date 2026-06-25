@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 
 /** Pillarbox color — set to match your portrait reference image background. */
-export const LANDSCAPE_FRAME_BG = "#111827";
+export const LANDSCAPE_FRAME_BG = "#001029";
 
 const PORTRAIT_ASPECT = 2 / 3;
 
