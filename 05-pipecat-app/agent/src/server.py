@@ -38,7 +38,7 @@ load_dotenv(_REPO_ROOT / ".env.local")
 
 app = FastAPI(title="LemonSlice Pipecat Session API")
 
-AGENT_IMAGE_URL = "https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/inf2-image-uploads/image_9d0f6-WhaKqLKTzfVHlfe5jXzHE8Rpi9peF4.jpg"
+AGENT_IMAGE_URL = "https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/inf2-image-uploads/resized-image-zt3Bs2sVHNEP6QnJvrDKXxIAy8XphY.jpg"
 
 
 @dataclass
@@ -112,6 +112,7 @@ async def _create_session(request: SessionRequest) -> dict[str, str]:
                 idle_timeout=60,
                 daily_room_url=request.daily_room_url,
                 daily_token=request.daily_token,
+                aspect_ratio="1x1",
             ),
             params=LemonSliceParams(
                 audio_in_enabled=True,

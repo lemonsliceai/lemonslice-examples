@@ -2,10 +2,10 @@
 
 import { cn } from "@/lib/utils";
 
-/** Pillarbox color — set to match your portrait reference image background. */
+/** Pillarbox color — set to match your reference image background. */
 export const LANDSCAPE_FRAME_BG = "#001029";
 
-const PORTRAIT_ASPECT = 2 / 3;
+const VIDEO_ASPECT = 1; // 1:1 square
 
 type PortraitLandscapeFrameProps = {
   width: number;
@@ -15,7 +15,7 @@ type PortraitLandscapeFrameProps = {
   children: React.ReactNode;
 };
 
-/** 16:9 landscape container with a centered 2:3 portrait slot. */
+/** 16:9 landscape container with a centered 1:1 square video slot. */
 export function PortraitLandscapeFrame({
   width,
   height,
@@ -23,7 +23,7 @@ export function PortraitLandscapeFrame({
   className,
   children,
 }: PortraitLandscapeFrameProps) {
-  const innerWidth = height * PORTRAIT_ASPECT;
+  const innerWidth = height * VIDEO_ASPECT;
 
   return (
     <div
@@ -41,6 +41,6 @@ export function PortraitLandscapeFrame({
   );
 }
 
-export function portraitSlotSize(frameHeight: number) {
-  return { width: frameHeight * PORTRAIT_ASPECT, height: frameHeight };
+export function videoSlotSize(frameHeight: number) {
+  return { width: frameHeight * VIDEO_ASPECT, height: frameHeight };
 }
