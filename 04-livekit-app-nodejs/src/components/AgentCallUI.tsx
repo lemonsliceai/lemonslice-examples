@@ -212,8 +212,7 @@ function ActiveCallPanel({
       )}
 
       {compactLayout && (
-        <Button size="default" className="gap-2" disabled variant="secondary">
-          <span className="size-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        <Button size="default" disabled variant="secondary">
           Calling…
         </Button>
       )}

@@ -2,6 +2,8 @@
 
 A collection of LemonSlice API integration examples.
 
+<video src="docs/example-demo-trimmed.mp4" width="100%" autoplay loop muted playsinline></video>
+
 ## Curious where to get started?
 
 Not sure which integration path fits your product? Read the [LemonSlice intro](https://lemonslice.com/docs/overview/intro) for an overview of **Hosted Pipeline** versus **Self-Managed Pipeline**.
