@@ -37,6 +37,10 @@ End-to-end example showing how to use the LemonSlice Self-Managed Pipeline with 
 
 End-to-end example showcasing how to combine a LemonSlice avatar with tool calling in a LiveKit agent. We use an AI SDR workflow (email collection + meeting scheduling) as an example application. A Next.js frontend renders the landing page and agent sidebar, while a Python backend runs the conversation and tool-calling logic via LiveKit data topics.
 
+### [07-livekit-zoom](./07-livekit-zoom/)
+
+Send a LemonSlice avatar into a third-party video meeting — Zoom, Google Meet, Microsoft Teams, or Webex — using LiveKit Agents. A Python worker runs your pipeline (STT, LLM, TTS) and dispatches the avatar into the meeting. The avatar listens to the call audio and responds in turn. It can optionally respond to text messages sent over the platform's chat interface.
+
 ## Getting Started
 
 Each folder is self-contained with its own setup guide. Open the folder you want and follow its README.

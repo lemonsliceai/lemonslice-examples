@@ -1,0 +1,31 @@
+[project]
+name = "livekit-zoom-avatar"
+version = "1.0.0"
+description = "Send a LemonSlice avatar into Zoom, Google Meet, Microsoft Teams, or Webex via LiveKit Agents"
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    # join_meeting() is merged on livekit/agents main but not in a PyPI release yet (as of 2026-07-02).
+    "livekit-agents>=1.6.4",
+    "livekit-plugins-openai>=1.6.4",
+    "livekit-plugins-groq>=1.6.4",
+    "livekit-plugins-elevenlabs>=1.6.4",
+    "livekit-plugins-lemonslice @ git+https://github.com/livekit/agents.git@main#subdirectory=livekit-plugins/livekit-plugins-lemonslice",
+    "python-dotenv>=1.2.1",
+    "httpx>=0.27.0",
+]
+
+[tool.uv]
+package = false
+
+# The agents git repo is a uv workspace; without overrides, transitive deps like
+# livekit-plugins-openai resolve from the checkout instead of PyPI and uv errors.
+override-dependencies = [
+    "livekit-agents>=1.6.4",
+    "livekit-plugins-openai>=1.6.4",
+    "livekit-plugins-groq>=1.6.4",
+    "livekit-plugins-elevenlabs>=1.6.4",
+]
+
+[tool.uv.sources]
+livekit-plugins-lemonslice = { git = "https://github.com/livekit/agents.git", branch = "main", subdirectory = "livekit-plugins/livekit-plugins-lemonslice" }
