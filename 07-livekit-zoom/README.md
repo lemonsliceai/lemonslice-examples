@@ -39,12 +39,12 @@ The LiveKit agents repo uses Git LFS for example assets that aren't needed to in
    ```env
    LEMONSLICE_API_KEY=your_lemonslice_api_key
    LEMONSLICE_IMAGE_URL=https://example.com/your-avatar.png
-   LIVEKIT_URL=wss://your-project.livekit.cloud
    LIVEKIT_API_KEY=your_livekit_api_key
    LIVEKIT_API_SECRET=your_livekit_api_secret
+   LIVEKIT_URL=wss://your-project.livekit.cloud
    GROQ_API_KEY=your_groq_api_key
-   ELEVEN_API_KEY=your_elevenlabs_api_key
    ELEVENLABS_VOICE_ID=your_elevenlabs_voice_id
+   ELEVEN_API_KEY=your_elevenlabs_api_key
    ```
 
    `LEMONSLICE_IMAGE_URL` must be a publicly accessible image URL for the avatar portrait.
@@ -72,7 +72,7 @@ Replace `<MEETING LINK>` with the full join URL for your platform.
 
 **Zoom:** include the password in the URL query string (do not pass it separately). Example:
 
-```
+```text
 https://us05web.zoom.us/j/12345678901?pwd=abc123xyz
 ```
 
