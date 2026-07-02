@@ -1,6 +1,7 @@
 "use client";
 
-import { RoomAudioRenderer } from "@livekit/components-react";
+import { RoomAudioRenderer, RoomContext } from "@livekit/components-react";
+import { LiveKitAvatarReadyWatcher } from "@lemonsliceai/avatar/livekit-react";
 import { ConnectionState } from "livekit-client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AgentSidebar } from "./components/AgentSidebar";
@@ -85,7 +86,12 @@ export default function App() {
         <PreConnectScreen onStart={handleStartDemo} isJoining={phase === "joining"} />
       )}
       {/* Remote agent TTS during connect (pre-demo) and in the demo — same pattern as lemonslice-examples. */}
-      {lk.room ? <RoomAudioRenderer room={lk.room} /> : null}
+      {lk.room ? (
+        <RoomContext.Provider value={lk.room}>
+          <LiveKitAvatarReadyWatcher onReady={lk.markAvatarReady} />
+          <RoomAudioRenderer />
+        </RoomContext.Provider>
+      ) : null}
     </div>
   );
 }

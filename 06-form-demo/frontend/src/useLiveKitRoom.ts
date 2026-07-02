@@ -122,8 +122,9 @@ export function useLiveKitRoom(tokenUrl: string) {
     gapVideoMs: null,
     videoTtfbMs: null,
   });
-  /** LemonSlice avatar pipeline warm — same signal as lemonslice-examples `bot_ready` on topic `lemonslice`. */
+  /** LemonSlice avatar ready — signaled by `LiveKitAvatarReadyWatcher`. */
   const [avatarJoined, setAvatarJoined] = useState(false);
+  const markAvatarReady = useCallback(() => setAvatarJoined(true), []);
 
   const [transcript, setTranscript] = useState<TranscriptLine[]>([]);
   const [interim, setInterim] = useState<TranscriptInterim>({});
@@ -214,10 +215,6 @@ export function useLiveKitRoom(tokenUrl: string) {
         // LemonSlice RPC — see https://lemonslice-jp-docs-4-27.mintlify.app/self-managed/integrations/livekit-agent-integration
         if (topic === LEMONSLICE_TOPIC) {
           const o = parsed as Record<string, unknown>;
-          if (o.type === "bot_ready") {
-            setAvatarJoined(true);
-            return;
-          }
           if (o.type === "metric") {
             const segmentMs = parseLemonsliceVideoSegmentMs(o);
             const ttfbMs = parseLemonsliceVideoTtfbMs(o);
@@ -364,6 +361,7 @@ export function useLiveKitRoom(tokenUrl: string) {
     sidebar,
     pipeline,
     avatarJoined,
+    markAvatarReady,
     sendUiEvent,
     sendChat,
     transcript,

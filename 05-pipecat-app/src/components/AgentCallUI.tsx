@@ -10,6 +10,7 @@ import {
   useParticipantIds,
   useVideoTrack,
 } from "@daily-co/daily-react";
+import { useAvatarReady } from "@lemonsliceai/avatar/react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AgentVideoView } from "@/components/agent-call/AgentVideoView";
@@ -129,6 +130,11 @@ function AgentCallUIInner({
   const audioTrack = selectedRemoteParticipantId ? (audioTrackState.track ?? null) : null;
   const videoTrack = selectedRemoteParticipantId ? (videoTrackState.track ?? null) : null;
 
+  useAvatarReady(videoTrack, {
+    enabled: Boolean(selectedRemoteParticipantId),
+    onReady: () => setIsBotReady(true),
+  });
+
   useEffect(() => {
     const el = remoteAudioRef.current;
     if (!el || !audioTrack) return;
@@ -211,9 +217,10 @@ function AgentCallUIInner({
   const avatarJoined = avatarParticipantIds.length > 0;
   const compactLayout = !(avatarJoined && isBotReady);
   const displayVideoTrack = compactLayout ? null : videoTrack;
+  const isRinging = Boolean(sessionState?.roomUrl) && compactLayout;
 
   useEffect(() => {
-    if (!compactLayout) return;
+    if (!isRinging) return;
     const audio = new Audio("/sounds/ring.m4a");
     audio.volume = 0.5;
     const play = () => {
@@ -226,14 +233,10 @@ function AgentCallUIInner({
       clearInterval(id);
       audio.pause();
     };
-  }, [compactLayout]);
+  }, [isRinging]);
 
   const onAppMessage = useCallback(
     (event: { data?: { type?: string; text?: string; message?: string } }) => {
-      const eventType = event?.data?.type?.trim().toLowerCase().replace(/-/g, "_");
-      if (eventType === "bot_ready") {
-        setIsBotReady(true);
-      }
       const text = event?.data?.text ?? event?.data?.message;
       if (text) showToast(text);
     },

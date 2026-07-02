@@ -32,7 +32,7 @@ Project layout:
   | `AGENT_NAME`                                           | Worker registration / dispatch — include in `.env.local` (default `lemonslice` in `.env.example`). |
   | `LEMONSLICE_API_KEY`                                   | Find this in your [LemonSlice account page](https://lemonslice.com/account).                       |
 
-  **Video ready** — Avatar video needs a few seconds. The agent sends a `bot_ready` RPC on the `lemonslice` data topic; the UI listens for that, then shows the full in-call layout with the live avatar (not on participant join alone).
+  **Video ready** — Avatar video needs a few seconds to arrive after join. The UI uses [`@lemonsliceai/avatar`](https://www.npmjs.com/package/@lemonsliceai/avatar) [`LiveKitAvatarReadyWatcher`](https://www.npmjs.com/package/@lemonsliceai/avatar) to signal when the avatar is ready to be displayed.
 2. **Install**
   ```bash
    npm install
