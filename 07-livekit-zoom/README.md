@@ -1,6 +1,6 @@
 # livekit-zoom
 
-Send a [LemonSlice](https://www.lemonslice.com/) avatar into a third-party video meeting — Zoom, Google Meet, or Microsoft Teams — using [LiveKit Agents](https://docs.livekit.io/agents/).
+Send a [LemonSlice](https://www.lemonslice.com/) avatar into a third-party video meeting — Zoom, Google Meet, Microsoft Teams, or Webex — using [LiveKit Agents](https://docs.livekit.io/agents/).
 
 The agent joins the meeting as a bot participant with your avatar on camera, listens to meeting audio, and responds with low-latency voice + animation.
 
@@ -17,7 +17,7 @@ The agent joins the meeting as a bot participant with your avatar on camera, lis
 
 ## Install
 
-As of **2026-06-24**, external meeting support (`AvatarSession.join_meeting`) is not yet in a PyPI release of LiveKit `agents`. This example pins from the relevant branch; everything else installs from PyPI (see `pyproject.toml`).
+As of **2026-07-02**, external meeting support (`AvatarSession.join_meeting`) is merged on [livekit/agents](https://github.com/livekit/agents) `main` but not yet in a PyPI release. This example installs `livekit-plugins-lemonslice` from that branch; everything else installs from PyPI (see `pyproject.toml`).
 
 ```bash
 cd 07-livekit-zoom
@@ -76,7 +76,7 @@ Replace `<MEETING LINK>` with the full join URL for your platform.
 https://us05web.zoom.us/j/12345678901?pwd=abc123xyz
 ```
 
-**Google Meet / Microsoft Teams:** use the standard invite link from the calendar event.
+**Google Meet / Microsoft Teams / Webex:** use the standard invite link from the calendar event.
 
 `bot_name` is optional; it sets the display name of the bot in the meeting.
 
@@ -84,7 +84,7 @@ https://us05web.zoom.us/j/12345678901?pwd=abc123xyz
 
 ## Agent stack
 
-This example uses a fast pipeline tuned for realtime meetings:
+This example uses a agent stack optimized for fast response times:
 
 | Component | Provider |
 |-----------|----------|
