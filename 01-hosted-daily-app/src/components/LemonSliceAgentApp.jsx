@@ -5,7 +5,10 @@ import {
   DailyAudio,
   useAppMessage,
   useMeetingState,
+  useParticipantIds,
+  useVideoTrack,
 } from "@daily-co/daily-react";
+import { useAvatarReady } from "@lemonsliceai/avatar/react";
 
 import api from "../api";
 import { useAgentState } from "../providers/AgentStateProvider";
@@ -26,6 +29,18 @@ export default function LemonSliceAgentApp() {
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState(false);
   const { setHasAgentJoinedRoom, setIsAgentReady } = useAgentState();
+
+  const remoteParticipantIds = useParticipantIds({ filter: "remote" });
+  const agentParticipantId = remoteParticipantIds[0] ?? null;
+  const videoTrackState = useVideoTrack(agentParticipantId ?? "local");
+  const agentVideoTrack = agentParticipantId
+    ? (videoTrackState.track ?? null)
+    : null;
+
+  useAvatarReady(agentVideoTrack, {
+    enabled: Boolean(agentParticipantId),
+    onReady: () => setIsAgentReady(true),
+  });
 
   /**
    * Handle when the agent leaves the call
@@ -55,9 +70,6 @@ export default function LemonSliceAgentApp() {
   useDailyEvent(
     "app-message",
     useCallback((ev) => {
-      if (ev?.data?.type === "bot_ready") {
-        setIsAgentReady(true);
-      }
       if (ev?.data?.type === "idle_timeout") {
         hasError(true);
         setErrorMessage("Agent has hit idle timeout");

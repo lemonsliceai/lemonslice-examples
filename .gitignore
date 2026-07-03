@@ -32,3 +32,5 @@ dist-ssr
 .venv
 __pycache__
 uv.lock
+
+.pnpm-store

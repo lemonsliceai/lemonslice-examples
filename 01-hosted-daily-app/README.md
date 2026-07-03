@@ -128,8 +128,8 @@ useDailyEvent(
   "app-message",
   useCallback((ev) => {
     // Handle different event types
-    if (ev?.data?.type === "bot_ready") {
-      setIsAgentReady(true);
+    if (ev?.data?.type === "agent_transcription") {
+      setTranscription(ev.data.transcription);
     }
     // ... other event handlers
   }, []),

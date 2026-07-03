@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@lemonsliceai/avatar": "^0.1.0",
     "@livekit/components-react": "^2.9.20",
     "@radix-ui/react-slot": "^1.2.4",
     "class-variance-authority": "^0.7.1",

@@ -8,7 +8,7 @@ const PREVIEW_FRAMES = [preview0, preview1, preview2];
 
 type Props = {
   onStart: () => void;
-  /** Connecting to the room and waiting for the agent (`bot_ready`). */
+  /** Connecting to the room and waiting for avatar readiness via `LiveKitAvatarReadyWatcher`. */
   isJoining: boolean;
 };
 
