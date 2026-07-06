@@ -2,20 +2,11 @@
 
 End-to-end example showing how to use the LemonSlice Self-Managed Pipeline with LiveKit integration. Use this when you want full control over your video agent pipeline (for example, with your own STT, LLM, and TTS components) while LemonSlice handles avatar generation; orchestration, infrastructure, and UI remain in your stack, with the LiveKit agent built using the [LiveKit Python SDK](https://github.com/livekit/agents).
 
-## Screenshots
+## Demo
 
-<table>
-  <tr>
-    <td align="center" valign="top" width="50%">
-      <img src="no-call.png" alt="Frontend before joining a call" width="380" /><br />
-      <sub>Before joining</sub>
-    </td>
-    <td align="center" valign="top" width="50%">
-      <img src="calling-state.png" alt="Frontend while in a call" width="380" /><br />
-      <sub>In a call</sub>
-    </td>
-  </tr>
-</table>
+<video src="../docs/agent-call-demo.mp4" width="100%" autoplay loop muted playsinline></video>
+
+[Video](../docs/agent-call-demo.mp4)
 
 Project layout:
 

@@ -4,6 +4,12 @@ End-to-end example showing LemonSlice self-managed Pipecat integration with a Ne
 
 This keeps the same UI pattern used in `03-livekit-app-python` and `04-livekit-app-nodejs` (pre-join, ringing, in-call controls), but swaps LiveKit for Daily + Pipecat transport.
 
+## Demo
+
+<video src="../docs/agent-call-demo.mp4" width="100%" autoplay loop muted playsinline></video>
+
+[Video](../docs/agent-call-demo.mp4)
+
 ## Project layout
 
 | Path | What |

@@ -2,13 +2,11 @@
 
 End-to-end example showing how to use the LemonSlice Self-Managed Pipeline with LiveKit integration. It follows the same self-managed model as `03-livekit-app-python` (bring your own STT, LLM, and TTS while LemonSlice handles avatar generation), but builds the LiveKit agent using the [LiveKit Node.js SDK](https://github.com/livekit/agents-js).
 
-## Screenshots
+## Demo
 
+<video src="../docs/agent-call-demo.mp4" width="100%" autoplay loop muted playsinline></video>
 
-|                |           |
-| -------------- | --------- |
-| Before joining | In a call |
-
+[Video](../docs/agent-call-demo.mp4)
 
 Project layout:
 
