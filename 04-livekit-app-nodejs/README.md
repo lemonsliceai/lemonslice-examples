@@ -6,8 +6,6 @@ End-to-end example showing how to use the LemonSlice Self-Managed Pipeline with 
 
 https://github.com/user-attachments/assets/0c889262-1021-4918-878d-722930ffda5f
 
-[Video](../docs/agent-call-demo.mp4)
-
 Project layout:
 
 

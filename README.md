@@ -12,32 +12,11 @@ Already running a voice agent? Keep your STT, LLM, and TTS. LemonSlice adds sync
 
 ## Model capabilities
 
-Generate avatars from any reference image — photorealistic humans, cartoons, animals, and brand mascots. No preset library or fine-tuning required. During a call you can update appearance, steer emotion, and trigger motion in real time.
-
-<table>
-  <tr>
-    <td align="center" width="50%"><b>Photorealism</b></td>
-    <td align="center" width="50%"><b>Any style</b></td>
-  </tr>
-  <tr>
-    <td><video src="https://mintcdn.com/lemonslice/tjuf8gh9o-eC0hJq/videos/capabilities/photorealism_1.mp4" width="100%" autoplay loop muted playsinline></video></td>
-    <td><video src="https://mintcdn.com/lemonslice/tjuf8gh9o-eC0hJq/videos/capabilities/style_1.mp4" width="100%" autoplay loop muted playsinline></video></td>
-  </tr>
-  <tr>
-    <td align="center"><b>Any emotion</b></td>
-    <td align="center"><b>Hand gestures</b></td>
-  </tr>
-  <tr>
-    <td><video src="https://mintcdn.com/lemonslice/tjuf8gh9o-eC0hJq/videos/capabilities/emotion_1.mp4" width="100%" autoplay loop muted playsinline></video></td>
-    <td><video src="https://mintcdn.com/lemonslice/tjuf8gh9o-eC0hJq/videos/capabilities/hands_1.mp4" width="100%" autoplay loop muted playsinline></video></td>
-  </tr>
-</table>
-
-More examples — full-body movement, physics, object holding, clothing swaps — on the [docs intro](https://lemonslice.com/docs/introduction#model-capabilities).
+Generate avatars from any reference image — photorealistic humans, cartoons, animals, and brand mascots. No preset library or fine-tuning required. During a call you can update appearance, steer emotion, and trigger motion in real time. See the [docs intro](https://lemonslice.com/docs/introduction#model-capabilities) for examples.
 
 ## Integration overview
 
-<img src="https://mintcdn.com/lemonslice/lgypzRYz7QfG2Mni/images/self_managed_diagram.png" alt="Self-managed integration diagram" width="100%" />
+<img src="docs/self-managed-diagram.png" alt="Self-managed integration diagram" width="100%" />
 
 LemonSlice adds a video layer on top of your agent stack. You bring your own STT, LLM, and TTS. LemonSlice listens to your agent's audio and streams lip-synced avatar video back into the session over WebRTC.
 
@@ -71,9 +50,7 @@ Open [http://localhost:3000](http://localhost:3000). See the [setup guide](./03-
 
 Pre-join, ringing, and in-call flow shared by the LiveKit and Pipecat examples:
 
-<video src="docs/agent-call-demo.mp4" width="100%" autoplay loop muted playsinline></video>
-
-[Video](docs/agent-call-demo.mp4)
+https://github.com/user-attachments/assets/0c889262-1021-4918-878d-722930ffda5f
 
 ## Live demo
 
