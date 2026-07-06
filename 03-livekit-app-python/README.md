@@ -4,9 +4,10 @@ End-to-end example showing how to use the LemonSlice Self-Managed Pipeline with 
 
 ## Demo
 
-<video src="../docs/agent-call-demo.mp4" width="100%" autoplay loop muted playsinline></video>
 
-[Video](../docs/agent-call-demo.mp4)
+https://github.com/user-attachments/assets/0c889262-1021-4918-878d-722930ffda5f
+
+
 
 Project layout:
 
