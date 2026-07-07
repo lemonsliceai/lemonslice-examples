@@ -2,8 +2,6 @@
 
 A collection of LemonSlice API integration examples.
 
-<video src="docs/example-demo-trimmed.mp4" width="100%" autoplay loop muted playsinline></video>
-
 ## Curious where to get started?
 
 Not sure which integration path fits your product? Read the [LemonSlice intro](https://lemonslice.com/docs/overview/intro) for an overview of **Hosted Pipeline** versus **Self-Managed Pipeline**.
@@ -40,6 +38,10 @@ End-to-end example showcasing how to combine a LemonSlice avatar with tool calli
 ### [07-livekit-zoom](./07-livekit-zoom/)
 
 Send a LemonSlice avatar into a third-party video meeting — Zoom, Google Meet, Microsoft Teams, or Webex — using LiveKit Agents. A Python worker runs your pipeline (STT, LLM, TTS) and dispatches the avatar into the meeting. The avatar listens to the call audio and responds in turn. It can optionally respond to text messages sent over the platform's chat interface.
+
+### [08-chromakey-landscape-demo](./08-chromakey-landscape-demo/)
+
+Shows how to composite a greenscreen LemonSlice avatar over your own background in the browser. Same LiveKit Python stack as `03-livekit-app-python`, but the frontend runs a WebGL chroma key shader to remove the green-screen and layer a 2:3 portrait avatar into a 16:9 landscape frame (e.g. a looping video behind the character). Use this when your product needs a horizontal layout or custom scenery rather than showing the raw avatar stream.
 
 ## Getting Started
 
