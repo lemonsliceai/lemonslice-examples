@@ -28,7 +28,7 @@ LemonSlice adds a video layer on top of your agent stack. You bring your own STT
 | **You bring** | STT, LLM, TTS, and call UI | Call UI only | Nothing — paste a snippet |
 | **LemonSlice runs** | Avatar video | Speech and intelligence | Speech, intelligence, and UI |
 | **Avatar selection** | Any image at runtime | Designed in the web app | Designed in the web app |
-| **In this repo** | [03](./03-livekit-app-python/), [04](./04-livekit-app-nodejs/), [05](./05-pipecat-app/), [06](./06-form-demo/), [07](./07-livekit-zoom/), [08](./08-chromakey-landscape-demo/) | [01-hosted-daily-app](./01-hosted-daily-app/) | — |
+| **In this repo** | [03](./03-livekit-app-python/), [04](./04-livekit-app-nodejs/), [05](./05-pipecat-app/), [06](./06-form-demo/), [07](./07-livekit-zoom/), [08](./08-greenscreen-landscape-demo/) | [01-hosted-daily-app](./01-hosted-daily-app/) | — |
 
 1. **Pick a framework** — [LiveKit](./03-livekit-app-python/) or [Pipecat](./05-pipecat-app/) integration guide.
 2. **Build your UI** — run your own call lifecycle and frontend around the avatar session. See the [production checklist](https://lemonslice.com/docs/reference/production-checklist).
@@ -67,7 +67,7 @@ Try the full product at **[lemonslice.com](https://lemonslice.com)**.
 | **[01-hosted-daily-app](./01-hosted-daily-app/)** | Hosted pipeline — LemonSlice runs speech and intelligence; you build the frontend. |
 | **[06-form-demo](./06-form-demo/)** | Tool calling in a LiveKit agent (AI SDR: email capture + meeting scheduling). |
 | **[07-livekit-zoom](./07-livekit-zoom/)** | Send an avatar into Zoom, Meet, Teams, or Webex via LiveKit Agents. |
-| **[08-chromakey-landscape-demo](./08-chromakey-landscape-demo/)** | Perform client-side chroma key (green screen) compositing to achieve a horizontal layout and animated background. |
+| **[08-greenscreen-landscape-demo](./08-greenscreen-landscape-demo/)** | Perform client-side chroma key (green screen) compositing to achieve a horizontal layout and animated background. |
 
 Each folder is self-contained with its own README and setup steps.
 
