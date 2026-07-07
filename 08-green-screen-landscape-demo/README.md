@@ -1,4 +1,4 @@
-# greenscreen-landscape-demo
+# green-screen-landscape-demo
 
 End-to-end example demonstrating how to perform **client-side [chroma key compositing](https://en.wikipedia.org/wiki/Chroma_key)** with a LemonSlice avatar. A Next.js app provides the UI (including a WebGL chroma key shader) and issues room tokens; a Python LiveKit Agents worker runs your pipeline and uses LemonSlice for the avatar.
 

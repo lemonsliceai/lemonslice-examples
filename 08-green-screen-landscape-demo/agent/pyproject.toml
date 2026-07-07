@@ -1,5 +1,5 @@
 [project]
-name = "lemonslice-greenscreen-landscape-demo-agent"
+name = "lemonslice-green-screen-landscape-demo-agent"
 version = "0.1.0"
 description = "LiveKit Agents worker: Groq LLM + ElevenLabs TTS + LemonSlice avatar"
 readme = "README.md"
