@@ -303,19 +303,6 @@ export function createChromaKeyRenderer(
     bufferHeight = h;
   };
 
-  const reinitAll = () => {
-    destroyGlState(gl, state);
-    destroyFeatherState(gl, feather);
-    destroyFramebufferTarget(gl, keyedTarget);
-    destroyFramebufferTarget(gl, featherTarget);
-    keyedTarget = null;
-    featherTarget = null;
-    bufferWidth = 0;
-    bufferHeight = 0;
-    state = createGlState(gl, options);
-    feather = useFeather ? createFeatherState(gl) : null;
-  };
-
   const runFeatherPass = (
     source: WebGLTexture,
     target: FramebufferTarget | null,
@@ -347,10 +334,12 @@ export function createChromaKeyRenderer(
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.max(1, Math.floor(width * dpr));
     const h = Math.max(1, Math.floor(height * dpr));
+    // Resizing the backing store clears the canvas but does not invalidate WebGL
+    // programs/textures — only viewport + FBO sizes need updating. ChromaKeyVideo
+    // redraws immediately after resize so the avatar does not flash blank.
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
-      reinitAll();
     }
     ensureFramebuffers(w, h);
     gl.viewport(0, 0, w, h);
