@@ -42,7 +42,7 @@ function AgentCallUIInner({
   const callObject = useDaily();
   const [sessionState, setSessionState] = useState<{ roomUrl: string; token: string } | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [micEnabled, setMicEnabled] = useState(true);
+  const [micEnabled, setMicEnabled] = useState(false);
   const [micPending, setMicPending] = useState(false);
   const [isBotReady, setIsBotReady] = useState(false);
   const [message, setMessage] = useState("");
@@ -136,6 +136,14 @@ function AgentCallUIInner({
   });
 
   useEffect(() => {
+    if (!callObject || !sessionState?.roomUrl) return;
+    void (async () => {
+      await callObject.setLocalAudio(isBotReady);
+      setMicEnabled(isBotReady && Boolean(callObject.localAudio()));
+    })();
+  }, [callObject, isBotReady, sessionState?.roomUrl]);
+
+  useEffect(() => {
     const el = remoteAudioRef.current;
     if (!el || !audioTrack) return;
     const stream = new MediaStream([audioTrack]);
@@ -164,11 +172,11 @@ function AgentCallUIInner({
       await callObject.join({
         url: roomUrl,
         token,
-        audioSource: true,
+        audioSource: false,
         videoSource: false,
       });
 
-      setMicEnabled(Boolean(callObject.localAudio()));
+      setMicEnabled(false);
     } catch (error) {
       console.error(error);
       await stopSession();

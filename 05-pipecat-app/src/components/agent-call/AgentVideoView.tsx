@@ -53,11 +53,19 @@ export function AgentVideoView({
         <>
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-full border-2 border-foreground/25 origin-center animate-ring-ripple"
+            className="pointer-events-none absolute inset-0 rounded-full border-[3px] border-foreground/45 origin-center animate-ring-ripple"
           />
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-full border-2 border-foreground/15 origin-center animate-ring-ripple [animation-delay:600ms]"
+            className="pointer-events-none absolute inset-0 rounded-full border-[3px] border-foreground/38 origin-center animate-ring-ripple [animation-delay:500ms]"
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-full border-[3px] border-foreground/30 origin-center animate-ring-ripple [animation-delay:1000ms]"
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-full border-[3px] border-foreground/22 origin-center animate-ring-ripple [animation-delay:1500ms]"
           />
         </>
       ) : null}

@@ -71,6 +71,10 @@ function ActiveCallPanel({
   const compactLayout = !avatarJoined;
 
   useEffect(() => {
+    void room.localParticipant.setMicrophoneEnabled(avatarJoined);
+  }, [room, avatarJoined]);
+
+  useEffect(() => {
     if (!compactLayout) return;
     const audio = new Audio("/sounds/ring.m4a");
     audio.volume = 0.5;
@@ -285,7 +289,7 @@ export default function AgentCallUI({
         token={token}
         serverUrl={serverUrl}
         connect
-        audio
+        audio={false}
         video={false}
         onDisconnected={handleDisconnected}
         style={{ height: "100%" }}

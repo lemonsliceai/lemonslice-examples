@@ -16,17 +16,17 @@ const config: Config = {
       },
       keyframes: {
         ringRipple: {
-          "0%": { transform: "scale(1)", opacity: "0.45" },
-          "100%": { transform: "scale(1.3)", opacity: "0" },
+          "0%": { transform: "scale(1)", opacity: "0.55" },
+          "100%": { transform: "scale(1.5)", opacity: "0" },
         },
         ringPulse: {
           "0%, 100%": { transform: "scale(1)" },
-          "50%": { transform: "scale(1.1)" },
+          "50%": { transform: "scale(0.97)" },
         },
       },
       animation: {
         "ring-ripple":
-          "ringRipple 1.2s cubic-bezier(0.22, 1, 0.36, 1) infinite backwards",
+          "ringRipple 2s cubic-bezier(0.22, 1, 0.36, 1) infinite backwards",
         "ring-pulse": "ringPulse 1.2s cubic-bezier(0.45, 0, 0.55, 1) infinite",
       },
       colors: {

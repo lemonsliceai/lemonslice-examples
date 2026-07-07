@@ -1,48 +1,79 @@
 # LemonSlice Examples
 
-A collection of LemonSlice API integration examples.
+[LemonSlice](https://lemonslice.com) generates real-time, interactive video avatars for voice and video agent applications. Video is lip-synced over WebRTC and generated zero-shot from any reference image.
 
-## Curious where to get started?
+Already running a voice agent? Keep your STT, LLM, and TTS. LemonSlice adds synced avatar video on top, streamed into the same session. These repos show how to connect it with [LiveKit](https://lemonslice.com/docs/livekit), [Pipecat](https://lemonslice.com/docs/pipecat), or the hosted pipeline.
 
-Not sure which integration path fits your product? Read the [LemonSlice intro](https://lemonslice.com/docs/overview/intro) for an overview of **Hosted Pipeline** versus **Self-Managed Pipeline**.
+[![LemonSlice product launch](https://img.youtube.com/vi/bQf5h0WD-48/hqdefault.jpg)](https://www.youtube.com/watch?v=bQf5h0WD-48)
 
-- **Hosted Pipeline** — LemonSlice manages the full conversational AI pipeline; you are responsible for the frontend UI.
-- **Self-Managed Pipeline** — You are responsible for managing the full conversational AI pipeline; LemonSlice operates on top of your voice stack by returning synchronized audio and video from an input audio stream.
+<video src="docs/example-demo-trimmed.mp4" width="100%" autoplay loop muted playsinline></video>
 
-## Folder Structure
+[Video](docs/example-demo-trimmed.mp4)
 
-### [01-hosted-daily-app](./01-hosted-daily-app/)
+## Model capabilities
 
-This full-stack example uses the LemonSlice Hosted Pipeline with Daily. Your backend creates the room, attaches a LemonSlice agent, and keeps LemonSlice API credentials on the server while users join from the browser. The project also includes UI and server endpoints for sending text messages to the agent, so you can steer the avatar with typed input alongside the voice call.
+Generate avatars from any reference image — photorealistic humans, cartoons, animals, and brand mascots. No preset library or fine-tuning required. During a call you can update appearance, steer emotion, and trigger motion in real time. See the [docs intro](https://lemonslice.com/docs/introduction#model-capabilities) for examples.
 
-### [02-livekit-playground-demo](./02-livekit-playground-demo/)
+## Integration overview
 
-For quick iteration of new LiveKit agents using the LemonSlice avatar plugin. Run the agent locally and connect to it in the LiveKit playground.
+<img src="docs/self-managed-diagram.png" alt="Self-managed integration diagram" width="100%" />
 
-### [03-livekit-app-python](./03-livekit-app-python/)
+LemonSlice adds a video layer on top of your agent stack. You bring your own STT, LLM, and TTS. LemonSlice listens to your agent's audio and streams lip-synced avatar video back into the session over WebRTC.
 
-End-to-end example showing how to use the LemonSlice Self-Managed Pipeline with our LiveKit integration. A Next.js app provides the UI and issues room tokens; a Python LiveKit Agents worker runs your pipeline (STT, LLM, TTS) and uses LemonSlice for the avatar. The LiveKit agent in this example is implemented with the [LiveKit Python SDK](https://github.com/livekit/agents).
+> The speed of your STT, LLM, and TTS directly affects avatar response time and interruption handling. Optimize for low latency to keep conversations natural.
 
-### [04-livekit-app-nodejs](./04-livekit-app-nodejs/)
+| | **Self-managed** (LiveKit, Pipecat) | **Hosted pipeline** | **Widget** |
+| --- | --- | --- | --- |
+| **Best for** | Production agents, full control | Custom UI without running your own AI stack | No-backend site embeds |
+| **You bring** | STT, LLM, TTS, and call UI | Call UI only | Nothing — paste a snippet |
+| **LemonSlice runs** | Avatar video | Speech and intelligence | Speech, intelligence, and UI |
+| **Avatar selection** | Any image at runtime | Designed in the web app | Designed in the web app |
+| **In this repo** | [03](./03-livekit-app-python/), [04](./04-livekit-app-nodejs/), [05](./05-pipecat-app/), [06](./06-form-demo/), [07](./07-livekit-zoom/), [08](./08-chromakey-landscape-demo/) | [01-hosted-daily-app](./01-hosted-daily-app/) | — |
 
-Same as `03-livekit-app-python`, but the LiveKit/LemonSlice agent is implemented with the [LiveKit Node.js SDK](https://github.com/livekit/agents-js).
+1. **Pick a framework** — [LiveKit](./03-livekit-app-python/) or [Pipecat](./05-pipecat-app/) integration guide.
+2. **Build your UI** — run your own call lifecycle and frontend around the avatar session. See the [production checklist](https://lemonslice.com/docs/reference/production-checklist).
 
-### [05-pipecat-app](./05-pipecat-app/)
+## Quickstart
 
-End-to-end example showing how to use the LemonSlice Self-Managed Pipeline with our [Pipecat](https://www.pipecat.ai/) integration. A Next.js frontend (same pre-join and in-call flow as the LiveKit examples) joins a Daily room; a Python FastAPI service runs Pipecat and wires the LemonSlice avatar into that pipeline.
+**[03-livekit-app-python](./03-livekit-app-python/)** — Next.js frontend + LiveKit Agents worker (Python). A good place to begin if you want a self-managed pipeline with full control over STT, LLM, and TTS.
 
-### [06-form-demo](./06-form-demo/)
+```bash
+cd 03-livekit-app-python
+cp .env.example .env.local   # add LIVEKIT_* and LEMONSLICE_API_KEY
+npm install && cd agent && uv sync && cd ..
+npm run dev:all
+```
 
-End-to-end example showcasing how to combine a LemonSlice avatar with tool calling in a LiveKit agent. We use an AI SDR workflow (email collection + meeting scheduling) as an example application. A Next.js frontend renders the landing page and agent sidebar, while a Python backend runs the conversation and tool-calling logic via LiveKit data topics.
+Open [http://localhost:3000](http://localhost:3000). See the [setup guide](./03-livekit-app-python/README.md) for details.
 
-### [07-livekit-zoom](./07-livekit-zoom/)
+## Call UI demo
 
-Send a LemonSlice avatar into a third-party video meeting — Zoom, Google Meet, Microsoft Teams, or Webex — using LiveKit Agents. A Python worker runs your pipeline (STT, LLM, TTS) and dispatches the avatar into the meeting. The avatar listens to the call audio and responds in turn. It can optionally respond to text messages sent over the platform's chat interface.
+Pre-join, ringing, and in-call flow shared by the LiveKit and Pipecat examples:
 
-### [08-chromakey-landscape-demo](./08-chromakey-landscape-demo/)
+https://github.com/user-attachments/assets/0c889262-1021-4918-878d-722930ffda5f
 
-Shows how to composite a greenscreen LemonSlice avatar over your own background in the browser. Same LiveKit Python stack as `03-livekit-app-python`, but the frontend runs a WebGL chroma key shader to remove the green-screen and layer a 2:3 portrait avatar into a 16:9 landscape frame (e.g. a looping video behind the character). Use this when your product needs a horizontal layout or custom scenery rather than showing the raw avatar stream.
+## Live demo
 
-## Getting Started
+Try the full product at **[lemonslice.com](https://lemonslice.com)**.
 
-Each folder is self-contained with its own setup guide. Open the folder you want and follow its README.
+## Examples
+
+| | |
+| --- | --- |
+| **[03-livekit-app-python](./03-livekit-app-python/)** | End-to-end self-managed pipeline — Next.js UI, Python LiveKit Agents worker, LemonSlice avatar. |
+| **[04-livekit-app-nodejs](./04-livekit-app-nodejs/)** | Same as `03`, with the agent in Node.js ([LiveKit Agents JS](https://github.com/livekit/agents-js)). |
+| **[05-pipecat-app](./05-pipecat-app/)** | Same call UI as the LiveKit examples, using Daily + Pipecat instead. |
+| **[02-livekit-playground-demo](./02-livekit-playground-demo/)** | Minimal agent for iterating in the [LiveKit playground](https://docs.livekit.io/home/cli/playground/). |
+| **[01-hosted-daily-app](./01-hosted-daily-app/)** | Hosted pipeline — LemonSlice runs speech and intelligence; you build the frontend. |
+| **[06-form-demo](./06-form-demo/)** | Tool calling in a LiveKit agent (AI SDR: email capture + meeting scheduling). |
+| **[07-livekit-zoom](./07-livekit-zoom/)** | Send an avatar into Zoom, Meet, Teams, or Webex via LiveKit Agents. |
+| **[08-chromakey-landscape-demo](./08-chromakey-landscape-demo/)** | Perform client-side chroma key (green screen) compositing to achieve a horizontal layout and animated background. |
+
+Each folder is self-contained with its own README and setup steps.
+
+## Docs
+
+- [Introduction](https://lemonslice.com/docs/introduction) — product overview and integration options
+- [LiveKit integration](https://lemonslice.com/docs/livekit)
+- [Pipecat integration](https://lemonslice.com/docs/pipecat)
+- [Production checklist](https://lemonslice.com/docs/reference/production-checklist)
