@@ -67,7 +67,7 @@ Try the full product at **[lemonslice.com](https://lemonslice.com)**.
 | **[01-hosted-daily-app](./01-hosted-daily-app/)** | Hosted pipeline — LemonSlice runs speech and intelligence; you build the frontend. |
 | **[06-form-demo](./06-form-demo/)** | Tool calling in a LiveKit agent (AI SDR: email capture + meeting scheduling). |
 | **[07-livekit-zoom](./07-livekit-zoom/)** | Send an avatar into Zoom, Meet, Teams, or Webex via LiveKit Agents. |
-| **[08-greenscreen-landscape-demo](./08-greenscreen-landscape-demo/)** | Perform client-side chroma key (green screen) compositing to achieve a horizontal layout and animated background. |
+| **[08-greenscreen-landscape-demo](./08-greenscreen-landscape-demo/)** | Perform client-side green screen (chroma key) compositing to achieve a horizontal layout and animated background. |
 
 Each folder is self-contained with its own README and setup steps.
 
