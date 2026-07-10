@@ -7,7 +7,7 @@ The LemonSlice avatar is generated at a 2:3 (vertical) aspect ratio, and inserte
 ## Demo
 
 
-https://github.com/user-attachments/assets/486188c5-bcd3-470f-976b-b9bbd719845b
+https://github.com/user-attachments/assets/aef009dd-9e55-4b46-93f4-36ab975ef191
 
 
 Project layout:
