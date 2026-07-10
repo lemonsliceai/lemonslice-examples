@@ -93,8 +93,7 @@ Set the reference image via `AGENT_IMAGE_URL` in `.env.local` (agent worker only
 
 ## Avatar aspect ratio
 
-When using a green screen, you may wish to experiment with different aspect ratios. Supported values are `2x3` (default), `9x16`, and `1x1`. This controls how your avatar image will be center-cropped (i.e. what part of your reference image will be animated). Vertical aspect ratios generally produce the best results for humanoid characters, as they reduce deadspace and improve perceived resolution. However, you may wish to use a wider aspect ratio (e.g. `1x1`) if the extremeties are cut off during gestures. The schematic below shows how different aspect ratios can be embedded into the same `16x9` front-end container. Note that `9x16` would
-be a poor choice for this image, since it crops the body, thus ruining the green-screen illusion.
+When using a green screen, you may wish to experiment with different aspect ratios. Supported API values are `2x3` (default), `9x16`, and `1x1`. This controls how your avatar image will be center-cropped (i.e. what part of your reference image will be animated). Vertical aspect ratios generally produce the best results for humanoid characters, as they reduce deadspace and improve perceived resolution. However, you may wish to use a wider aspect ratio (e.g. `1x1`) if the extremities are cut off during gestures. The schematic below shows how different aspect ratios can be embedded into the same 16:9 front-end container. Note that `9x16` would be a poor choice for this image, since it crops the body, thus ruining the green-screen illusion.
 
 ![Aspect ratio schematic: 9x16, 2x3, and 1x1 crops of the green-screen avatar over a landscape background](assets/schematic.jpg)
 

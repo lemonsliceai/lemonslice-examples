@@ -19,7 +19,7 @@ import {
   useTracks,
 } from "@livekit/components-react";
 import { LiveKitAvatarReadyWatcher } from "@lemonsliceai/avatar/livekit-react";
-import { Track, RoomEvent, isVideoTrack, type Participant } from "livekit-client";
+import { Track, RoomEvent, isVideoTrack, ParticipantKind, type Participant } from "livekit-client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AgentVideoView } from "@/components/agent-call/AgentVideoView";
@@ -105,7 +105,10 @@ function ActiveCallPanel({
   const [toastVisible, setToastVisible] = useState(false);
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const agentIdentity = remoteParticipants[0]?.identity ?? null;
+  // LIVEKIT_AGENT_NAME is the dispatch name, not the room identity (that's auto-assigned).
+  // The worker joins as ParticipantKind.AGENT; the avatar is a separate standard participant.
+  const agentIdentity =
+    remoteParticipants.find((p) => p.kind === ParticipantKind.AGENT)?.identity ?? null;
 
   const showToast = useCallback((text: string, duration = 3000) => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
