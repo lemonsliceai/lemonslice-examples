@@ -4,6 +4,12 @@ Send a [LemonSlice](https://www.lemonslice.com/) avatar into a third-party video
 
 The agent joins the meeting as a bot participant with your avatar on camera, listens to meeting audio, and responds with low-latency voice + animation.
 
+## Demo
+
+
+https://github.com/user-attachments/assets/0598630e-581c-459a-8501-49811aa354c3
+
+
 ## Prerequisites
 
 - Python 3.10 to 3.12
