@@ -4,6 +4,12 @@ End-to-end example demonstrating how to perform **client-side [chroma key compos
 
 The LemonSlice avatar is generated at a 2:3 (vertical) aspect ratio, and inserted into a 16:9 (horizontal) container. Chroma key compositing is performed client-side to replace a green-screen background with an animated background.
 
+## Demo
+
+
+https://github.com/user-attachments/assets/486188c5-bcd3-470f-976b-b9bbd719845b
+
+
 Project layout:
 
 | Path                                         | What                             |
@@ -29,7 +35,7 @@ Project layout:
    | `GROQ_API_KEY`                                         | Groq API key for the LLM (`llama-3.3-70b-versatile`).                                              |
    | `ELEVENLABS_VOICE_ID`, `ELEVEN_API_KEY`                | ElevenLabs voice and API key for TTS (`eleven_flash_v2_5`).                                        |
 
-   **Video ready** —bThe UI uses [`@lemonsliceai/avatar`](https://www.npmjs.com/package/@lemonsliceai/avatar) to signal when the avatar is ready to be displayed.
+   **Video ready** — The UI uses [`@lemonsliceai/avatar`](https://www.npmjs.com/package/@lemonsliceai/avatar) to signal when the avatar is ready to be displayed.
 
 2. **Install** — install [uv](https://docs.astral.sh/uv/getting-started/installation/) first, then:
 
@@ -87,7 +93,11 @@ Set the reference image via `AGENT_IMAGE_URL` in `.env.local` (agent worker only
 
 ## Avatar aspect ratio
 
-By default the agent generates a **2:3 portrait** stream and the UI centers it in the 16:9 frame. If the character's body is clipped, switch to **1:1** — two one-line changes:
+When using a green screen, you may wish to experiment with different aspect ratios. Supported API values are `2x3` (default), `9x16`, and `1x1`. This controls how your avatar image will be center-cropped (i.e. what part of your reference image will be animated). Vertical aspect ratios generally produce the best results for humanoid characters, as they reduce deadspace and improve perceived resolution. However, you may wish to use a wider aspect ratio (e.g. `1x1`) if the extremities are cut off during gestures. The schematic below shows how different aspect ratios can be embedded into the same 16:9 front-end container. Note that `9x16` would be a poor choice for this image, since it crops the body, thus ruining the green-screen illusion.
+
+![Aspect ratio schematic: 9x16, 2x3, and 1x1 crops of the green-screen avatar over a landscape background](assets/schematic.jpg)
+
+By default this demo uses **2x3**. To switch, update both places:
 
 **1. Agent** — `agent/src/agent.py`:
 
@@ -95,12 +105,12 @@ By default the agent generates a **2:3 portrait** stream and the UI centers it i
 avatar = lemonslice.AvatarSession(
     agent_image_url=AGENT_IMAGE_URL,
     agent_prompt="A person talking.",
-    aspect_ratio="1x1",  # was "2x3"
+    aspect_ratio="1x1",
 )
 ```
 
 **2. Frontend** — `src/lib/constants.ts`:
 
 ```typescript
-export const AVATAR_ASPECT_RATIO = 1; // was 2 / 3 for "2x3"
+export const AVATAR_ASPECT_RATIO = 1; // 2 / 3 for "2x3"
 ```

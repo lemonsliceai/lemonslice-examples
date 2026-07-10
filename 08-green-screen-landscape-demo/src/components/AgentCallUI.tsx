@@ -6,6 +6,7 @@
  * 1. **Pre-join** — No token yet; “Start call” fetches `/api/token`.
  * 2. **Calling** — In room, waiting for avatar readiness via `@lemonsliceai/avatar` `LiveKitAvatarReadyWatcher`.
  * 3. **Active** — Avatar is ready; chroma-keyed 2:3 portrait video over a 16:9 background.
+ *    When the LemonSlice avatar leaves, disconnect and return to pre-join.
  */
 
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
@@ -18,7 +19,7 @@ import {
   useTracks,
 } from "@livekit/components-react";
 import { LiveKitAvatarReadyWatcher } from "@lemonsliceai/avatar/livekit-react";
-import { Track, RoomEvent, isVideoTrack, type Participant } from "livekit-client";
+import { Track, RoomEvent, isVideoTrack, ParticipantKind, type Participant } from "livekit-client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AgentVideoView } from "@/components/agent-call/AgentVideoView";
@@ -46,6 +47,8 @@ function calcActiveFrameSize() {
 }
 
 const TOPIC_CHAT = "lk.chat";
+/** LiveKit identity used by the LemonSlice avatar participant. */
+const LEMONSLICE_AVATAR_IDENTITY = "lemonslice-avatar-agent";
 
 function useRemoteAgentVideo() {
   const room = useRoomContext();
@@ -102,7 +105,10 @@ function ActiveCallPanel({
   const [toastVisible, setToastVisible] = useState(false);
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const agentIdentity = remoteParticipants[0]?.identity ?? null;
+  // LIVEKIT_AGENT_NAME is the dispatch name, not the room identity (that's auto-assigned).
+  // The worker joins as ParticipantKind.AGENT; the avatar is a separate standard participant.
+  const agentIdentity =
+    remoteParticipants.find((p) => p.kind === ParticipantKind.AGENT)?.identity ?? null;
 
   const showToast = useCallback((text: string, duration = 3000) => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -132,8 +138,12 @@ function ActiveCallPanel({
   }, [room, showToast]);
 
   useEffect(() => {
-    const onParticipantDisconnected = (_p: Participant) => {
-      if (room.remoteParticipants.size > 0) return;
+    const onParticipantDisconnected = (p: Participant) => {
+      // Agent worker and avatar are separate remotes — avatar leave must end the call
+      // even if the agent is still in the room.
+      if (p.identity !== LEMONSLICE_AVATAR_IDENTITY && room.remoteParticipants.size > 0) {
+        return;
+      }
       setAvatarJoined(false);
       room.disconnect().catch(() => {});
       onAvatarDisconnected();
