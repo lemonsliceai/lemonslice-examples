@@ -1,33 +1,53 @@
 # LemonSlice Examples
 
-[LemonSlice](https://lemonslice.com) generates real-time, interactive video avatars for voice and video agent applications. Video is lip-synced over WebRTC and generated zero-shot from any reference image.
+Build interactive avatars that can listen, talk and respond directly inside your product or website using the LemonSlice API.
 
-Already running a voice agent? Keep your STT, LLM, and TTS. LemonSlice adds synced avatar video on top, streamed into the same session. These repos show how to connect it with [LiveKit](https://lemonslice.com/docs/livekit), [Pipecat](https://lemonslice.com/docs/pipecat), or the hosted pipeline.
+- ✓ [Ultra-low latency](https://lemonslice.com/blog/lemonslice-flash)
+- ✓ 1000+ concurrency
+- ✓ Multi-hour long calls
+- ✓ Instant avatar creation (1 photo)
+- ✓ 5-minute API setup
 
-[![LemonSlice product launch](https://img.youtube.com/vi/bQf5h0WD-48/hqdefault.jpg)](https://www.youtube.com/watch?v=bQf5h0WD-48)
+[![YouTube](https://img.youtube.com/vi/bQf5h0WD-48/hqdefault.jpg)](https://youtu.be/bQf5h0WD-48)
 
-<video src="docs/example-demo-trimmed.mp4" width="100%" autoplay loop muted playsinline></video>
+## The most advanced interactive avatar model
 
-[Video](docs/example-demo-trimmed.mp4)
+[LemonSlice](https://lemonslice.com/) is an AI research lab building the world’s first **Character World Model**: interactive characters that talk, listen, and react in real-time based on your conversations. Character World Models are more advanced than traditional real-time avatars, which are based on deepfake or older generative technology.
 
-## Model capabilities
+Capabilities include hand gestures, on-the-fly emotions, holding objects, clothing swaps, physics modeling, non-human and cartoon characters, full-body movement, and photorealism. Create any character from a **single image** — no training or fine-tuning required.
 
-Generate avatars from any reference image — photorealistic humans, cartoons, animals, and brand mascots. No preset library or fine-tuning required. During a call you can update appearance, steer emotion, and trigger motion in real time. See the [docs intro](https://lemonslice.com/docs/introduction#model-capabilities) for examples.
+## How it works
 
-## Integration overview
+Every real-time conversation with a character goes through the following steps:
+
+1. A speech-to-text (**STT**) and voice-activity detection (**VAD**) model listen to the user
+2. An **LLM** decides what to say back
+3. Text-to-speech (**TTS**) turns the reply into audio
+4. **LemonSlice** turns the audio into a real-time video of the character speaking within a live video call
+
+All of this runs within a harness that manages the orchestration and WebRTC connection. LemonSlice connects to all major WebRTC providers to make orchestration easy.
 
 <img src="docs/self-managed-diagram.png" alt="Self-managed integration diagram" width="100%" />
 
-LemonSlice adds a video layer on top of your agent stack. You bring your own STT, LLM, and TTS. LemonSlice listens to your agent's audio and streams lip-synced avatar video back into the session over WebRTC.
+The inputs to the LemonSlice API are:
 
-> The speed of your STT, LLM, and TTS directly affects avatar response time and interruption handling. Optimize for low latency to keep conversations natural.
+1. **Image** — defines the appearance of your character
+2. **Audio** — streaming audio from a TTS model like ElevenLabs or Cartesia. This audio is exactly what your character will say.
+3. (optional) **Action Engine** — determines what actions (waving, holding a phone, looking away) the character should take during the conversation. Currently Enterprise only.
+
+**Note**: The quality of your avatar is _heavily_ determined by your image. See [Avatar Image Tips](https://lemonslice.com/docs/prompting-guide/avatar-image-tips) for framing and posing tips.
+
+## Integrate real-time avatars into your app
+
+Add LemonSlice to the stack you already use. LemonSlice integrates with all major WebRTC providers like LiveKit, Daily/Pipecat, and Agora. These providers all have Conversational AI toolkits that make it simple to combine any LLM, TTS, and STT component with LemonSlice.
+
+You can think of LemonSlice like a graphics layer or “face layer” that’s added on top of your voice agent. It is compatible with any TTS and LLM model.
 
 | | **Self-managed** (LiveKit, Pipecat) | **Hosted pipeline** | **Widget** |
 | --- | --- | --- | --- |
-| **Best for** | Production agents, full control | Custom UI without running your own AI stack | No-backend site embeds |
-| **You bring** | STT, LLM, TTS, and call UI | Call UI only | Nothing — paste a snippet |
-| **LemonSlice runs** | Avatar video | Speech and intelligence | Speech, intelligence, and UI |
-| **Avatar selection** | Any image at runtime | Designed in the web app | Designed in the web app |
+| **Complexity** | Full code | Low code | No code |
+| **You control** | Speech, intelligence, call UI | Call UI | Nothing |
+| **LemonSlice controls** | Avatar | Speech, intelligence, avatar | Speech, intelligence, avatar, call UI |
 | **In this repo** | [03](./03-livekit-app-python/), [04](./04-livekit-app-nodejs/), [05](./05-pipecat-app/), [06](./06-form-demo/), [07](./07-livekit-zoom/), [08](./08-green-screen-landscape-demo/) | [01-hosted-daily-app](./01-hosted-daily-app/) | — |
 
 1. **Pick a framework** — [LiveKit](./03-livekit-app-python/) or [Pipecat](./05-pipecat-app/) integration guide.
@@ -35,7 +55,7 @@ LemonSlice adds a video layer on top of your agent stack. You bring your own STT
 
 ## Quickstart
 
-**[03-livekit-app-python](./03-livekit-app-python/)** — Next.js frontend + LiveKit Agents worker (Python). A good place to begin if you want a self-managed pipeline with full control over STT, LLM, and TTS.
+**[03-livekit-app-python](./03-livekit-app-python/)** — Next.js frontend + LiveKit Agents worker (Python). A production-ready avatar app you can run locally in about 5 minutes.
 
 ```bash
 cd 03-livekit-app-python
@@ -52,10 +72,6 @@ Pre-join, ringing, and in-call flow shared by the LiveKit and Pipecat examples:
 
 https://github.com/user-attachments/assets/0c889262-1021-4918-878d-722930ffda5f
 
-## Live demo
-
-Try the full product at **[lemonslice.com](https://lemonslice.com)**.
-
 ## Examples
 
 | | |
@@ -70,6 +86,10 @@ Try the full product at **[lemonslice.com](https://lemonslice.com)**.
 | **[08-green-screen-landscape-demo](./08-green-screen-landscape-demo/)** | Perform client-side green screen (chroma key) compositing to achieve a horizontal layout and animated background. |
 
 Each folder is self-contained with its own README and setup steps.
+
+## Try the live demo
+
+Try the full product at **[lemonslice.com](https://lemonslice.com)**.
 
 ## Docs
 
