@@ -93,8 +93,10 @@ export function AgentVideoView({
       ) : null}
       <div
         className={cn(
-          "relative flex items-center justify-center bg-muted",
-          compact ? "overflow-hidden rounded-full" : useWebGl ? "overflow-visible" : "overflow-hidden rounded-3xl",
+          // Always CSS-clip corners — WebGL mask clear is black; overflow-visible
+          // left those square corners visible around the rounded video.
+          "relative flex items-center justify-center overflow-hidden bg-muted",
+          compact ? "rounded-full" : "rounded-3xl",
           compact && "z-[1] origin-center animate-ring-pulse will-change-transform",
         )}
         style={{
@@ -102,6 +104,8 @@ export function AgentVideoView({
           height: compact ? COMPACT_SIZE_PX : height,
         }}
       >
+        {/* Placeholder while ringing (no track yet). Hide once live video is
+            attached so it doesn't sit under the WebGL layer. */}
         {placeholderVideoUrl && !hasAgentVideo ? (
           <video
             src={placeholderVideoUrl}

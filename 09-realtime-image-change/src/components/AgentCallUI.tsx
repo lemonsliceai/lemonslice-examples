@@ -37,6 +37,7 @@ import {
   IMAGE_CHANGE_TIMEOUT_MS,
   IMAGE_EDIT_TIMEOUT_MS,
   LEMONSLICE_RPC_TOPIC,
+  appendImageChangeLog,
   publishAvatarReady,
   publishImageEditCommand,
   publishSetImageCommand,
@@ -52,9 +53,7 @@ const BASE_IMAGE_URL =
 const INITIAL_IMAGE_STATE: ImageChangeState = {
   phase: "idle",
   currentImageUrl: BASE_IMAGE_URL,
-  detail: "Start a call, then swap the avatar image via tools, URL, or Nano Banana edit.",
-  lastEvent: null,
-  error: null,
+  events: [],
 };
 
 function useRemoteAgentVideo() {
@@ -120,13 +119,13 @@ function ActiveCallPanel({
   const armImageChangeWatchdog = useCallback(() => {
     if (watchdogRef.current) clearTimeout(watchdogRef.current);
     watchdogRef.current = setTimeout(() => {
-      setImageState((s) => ({
-        ...s,
-        phase: "error",
-        error: "Timed out waiting for image_change_complete",
-        detail: "No image_change_complete / image_change_error within 60s.",
-        lastEvent: "timeout",
-      }));
+      setImageState((s) =>
+        appendImageChangeLog(
+          { ...s, phase: "error" },
+          "image_change_error",
+          "Timed out waiting for image_change_complete",
+        ),
+      );
     }, IMAGE_CHANGE_TIMEOUT_MS);
   }, [setImageState]);
 
@@ -222,24 +221,18 @@ function ActiveCallPanel({
       if (topic === LEMONSLICE_RPC_TOPIC) {
         if (data.type === "image_change_complete") {
           clearWatchdogs();
-          setImageState((s) => ({
-            ...s,
-            phase: "complete",
-            detail: "Avatar finished pushing new frames (image_change_complete).",
-            lastEvent: "lemonslice:image_change_complete",
-            error: null,
-          }));
+          setImageState((s) =>
+            appendImageChangeLog({ ...s, phase: "complete" }, "image_change_complete"),
+          );
           return;
         }
         if (data.type === "image_change_error") {
           clearWatchdogs();
-          setImageState((s) => ({
-            ...s,
-            phase: "error",
-            detail: "LemonSlice reported image_change_error.",
-            lastEvent: "lemonslice:image_change_error",
-            error: data.message ?? "Image change failed",
-          }));
+          const msg = data.message ?? "Image change failed";
+          showToast(msg);
+          setImageState((s) =>
+            appendImageChangeLog({ ...s, phase: "error" }, "image_change_error", msg),
+          );
         }
         return;
       }
@@ -252,27 +245,26 @@ function ActiveCallPanel({
           editWatchdogRef.current = null;
         }
         armImageChangeWatchdog();
-        setImageState((s) => ({
-          ...s,
-          phase: "transitioning",
-          currentImageUrl: data.image_url ?? s.currentImageUrl,
-          detail:
-            "Control API accepted update-image (image_accepted). Waiting for video transition…",
-          lastEvent: "agent/events:image_accepted",
-          error: null,
-        }));
+        setImageState((s) =>
+          appendImageChangeLog(
+            {
+              ...s,
+              phase: "transitioning",
+              currentImageUrl: data.image_url ?? s.currentImageUrl,
+            },
+            "image_accepted",
+          ),
+        );
         return;
       }
 
       if (data.type === "image_update_failed") {
         clearWatchdogs();
-        setImageState((s) => ({
-          ...s,
-          phase: "error",
-          detail: "Agent reported image_update_failed.",
-          lastEvent: "agent/events:image_update_failed",
-          error: data.message ?? "Image update failed",
-        }));
+        const msg = data.message ?? "Image update failed";
+        showToast(msg);
+        setImageState((s) =>
+          appendImageChangeLog({ ...s, phase: "error" }, "image_update_failed", msg),
+        );
       }
     };
 
@@ -281,7 +273,7 @@ function ActiveCallPanel({
       room.off(RoomEvent.DataReceived, handler);
       clearWatchdogs();
     };
-  }, [room, setImageState, armImageChangeWatchdog, clearWatchdogs]);
+  }, [room, setImageState, armImageChangeWatchdog, clearWatchdogs, showToast]);
 
   const { toggle: toggleMic, enabled: micEnabled, pending: micPending } = useTrackToggle({
     source: Track.Source.Microphone,
@@ -308,35 +300,23 @@ function ActiveCallPanel({
     async (url: string) => {
       if (room.state !== ConnectionState.Connected) return;
       clearWatchdogs();
-      setImageState({
-        phase: "sending",
-        currentImageUrl: imageState.currentImageUrl,
-        detail: "Publishing agent/set_image…",
-        lastEvent: "client→agent/set_image",
-        error: null,
-      });
+      setImageState((s) => ({ ...s, phase: "sending" }));
       try {
         await publishSetImageCommand(room.localParticipant, {
           type: "set_image",
           image_url: url,
         });
         armImageChangeWatchdog();
-        setImageState((s) => ({
-          ...s,
-          phase: "accepted",
-          detail: "Waiting for image_accepted then image_change_complete…",
-        }));
+        setImageState((s) => ({ ...s, phase: "idle" }));
       } catch (e) {
-        setImageState((s) => ({
-          ...s,
-          phase: "error",
-          error: e instanceof Error ? e.message : "Failed to publish set_image",
-          detail: "Could not publish agent/set_image.",
-          lastEvent: "publish_error",
-        }));
+        const msg = e instanceof Error ? e.message : "Failed to publish set_image";
+        showToast(msg);
+        setImageState((s) =>
+          appendImageChangeLog({ ...s, phase: "error" }, "image_update_failed", msg),
+        );
       }
     },
-    [room, imageState.currentImageUrl, setImageState, armImageChangeWatchdog, clearWatchdogs],
+    [room, setImageState, armImageChangeWatchdog, clearWatchdogs, showToast],
   );
 
   const handleGenerateEdit = useCallback(
@@ -347,21 +327,15 @@ function ActiveCallPanel({
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
           : `edit-${Date.now()}`;
-      setImageState({
-        phase: "editing",
-        currentImageUrl: imageState.currentImageUrl,
-        detail: "Publishing agent/image_edit for Fal Nano Banana 2 Lite…",
-        lastEvent: "client→agent/image_edit",
-        error: null,
-      });
+      setImageState((s) => ({ ...s, phase: "editing" }));
       editWatchdogRef.current = setTimeout(() => {
-        setImageState((s) => ({
-          ...s,
-          phase: "error",
-          error: "Timed out waiting for Nano Banana edit / image_accepted",
-          detail: "No image_accepted within 120s.",
-          lastEvent: "edit_timeout",
-        }));
+        setImageState((s) =>
+          appendImageChangeLog(
+            { ...s, phase: "error" },
+            "image_update_failed",
+            "Timed out waiting for image_accepted",
+          ),
+        );
       }, IMAGE_EDIT_TIMEOUT_MS);
       try {
         await publishImageEditCommand(room.localParticipant, {
@@ -372,16 +346,14 @@ function ActiveCallPanel({
         });
       } catch (e) {
         clearWatchdogs();
-        setImageState((s) => ({
-          ...s,
-          phase: "error",
-          error: e instanceof Error ? e.message : "Failed to publish edit",
-          detail: "Could not publish agent/image_edit.",
-          lastEvent: "publish_error",
-        }));
+        const msg = e instanceof Error ? e.message : "Failed to publish edit";
+        showToast(msg);
+        setImageState((s) =>
+          appendImageChangeLog({ ...s, phase: "error" }, "image_update_failed", msg),
+        );
       }
     },
-    [room, imageState.currentImageUrl, setImageState, clearWatchdogs],
+    [room, imageState.currentImageUrl, setImageState, clearWatchdogs, showToast],
   );
 
   const transitioning =
@@ -399,12 +371,14 @@ function ActiveCallPanel({
           style={{ width: Math.max(activeWidth, 250) }}
         >
           <div className="relative flex flex-col items-center">
+            {/* Attach the LiveKit track only after LiveKitAvatarReadyWatcher
+                reports first-frame readiness — attaching early shows an empty gray circle. */}
             <AgentVideoView
               compact={compactLayout}
               width={activeWidth}
               height={activeHeight}
               placeholderVideoUrl={placeholderVideoUrl}
-              agentVideoTrack={videoTrack}
+              agentVideoTrack={compactLayout ? null : videoTrack}
               imageTransitioning={transitioning && !compactLayout}
             />
             {toastVisible && toastMessage ? (

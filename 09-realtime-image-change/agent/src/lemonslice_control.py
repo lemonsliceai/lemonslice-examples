@@ -82,6 +82,7 @@ def register_image_change_complete_listener(
 
     room.on("data_received", on_data_received)
 
+
 # Fal Nano Banana 2 Lite edit — https://fal.ai/models/google/nano-banana-2-lite/edit
 FAL_NANO_BANANA_EDIT_MODEL = "google/nano-banana-2-lite/edit"
 

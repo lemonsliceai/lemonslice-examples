@@ -70,11 +70,18 @@ You can change your appearance mid-call using tools when the conversation calls 
 # Appearance tools (use when natural — do not announce the tool names)
 - change_outfit: when the user wants a new outfit / clothing swap
 - go_outside: when the user wants to go outdoors / change the setting
-- add_sunglasses: when the user wants to put on accessories or sunglasses
+- add_sunglasses: when the user wants sunglasses / accessories look
+- reset_appearance: when the user wants to reset, go back, or return to the original /
+  starting look
 
-After a tool succeeds (it waits until the new image is on video), briefly acknowledge
-the change in one short sentence. Do not call tools back-to-back unless the user asks
-for another change.
+# Appearance changes do NOT stack
+Each tool replaces the entire avatar image with a single preset. Calling another
+appearance tool swaps to that preset — it does not layer on top of the previous one
+(e.g. sunglasses after outfit is just the sunglasses look, not both). There is no
+combined look via tools. To return to the beginning, use reset_appearance.
+
+After a tool succeeds, briefly acknowledge the change in one short sentence.
+Do not call tools back-to-back unless the user asks for another change.
 
 # Brevity
 Three sentences or less.
@@ -101,10 +108,9 @@ class Assistant(Agent):
         self._image_ready = image_ready
         self._image_change_gate = image_change_gate
 
-    async def _swap_scene(self, scene_key: str, label: str) -> str:
+    async def _apply_image(self, image_url: str, label: str) -> str:
         if not self._image_ready.is_set():
             return "Avatar is not ready for image updates yet — wait a moment and try again."
-        image_url = SCENE_IMAGES[scene_key]
         generation = await apply_image_and_notify(
             self._room,
             lemonslice_session_id=self._session_id,
@@ -113,12 +119,10 @@ class Assistant(Agent):
         )
         if generation is None:
             return f"Could not apply the {label} image via LemonSlice control update-image."
-        # Hold the tool result (and therefore the spoken reply) until the avatar
-        # has pushed the new frames — same signal the UI uses for its transition.
         saw_complete = await self._image_change_gate.wait(generation)
         if not saw_complete:
             logger.warning(
-                "Timed out waiting for image_change_complete after %s swap", scene_key
+                "Timed out waiting for image_change_complete after %s update", label
             )
             return (
                 f"The {label} image was sent but the video transition timed out. "
@@ -130,23 +134,42 @@ class Assistant(Agent):
             "Acknowledge the new appearance briefly."
         )
 
+    async def _swap_scene(self, scene_key: str, label: str) -> str:
+        return await self._apply_image(SCENE_IMAGES[scene_key], label)
+
     @function_tool()
     async def change_outfit(self, context: RunContext) -> str:
-        """Swap to a different outfit when the user wants a clothing / look change."""
+        """Replace the full appearance with the outfit preset (does not stack with other looks)."""
         return await self._swap_scene("outfit", "outfit")
 
     @function_tool()
     async def go_outside(self, context: RunContext) -> str:
-        """Move the scene outdoors when the user wants to go outside or change location."""
+        """Replace the full appearance with the outdoors preset (does not stack with other looks)."""
         return await self._swap_scene("outside", "outside")
 
     @function_tool()
     async def add_sunglasses(self, context: RunContext) -> str:
-        """Add accessories (e.g. sunglasses / props) when the user asks for them."""
+        """Replace the full appearance with the sunglasses preset (does not stack on the current look)."""
         return await self._swap_scene("sunglasses", "accessories")
+
+    @function_tool()
+    async def reset_appearance(self, context: RunContext) -> str:
+        """Reset to the original starting look when the user asks to reset or go back."""
+        return await self._apply_image(AGENT_IMAGE_URL, "original")
 
 
 server = AgentServer()
+
+
+async def speak_after_image_complete(session: AgentSession) -> None:
+    """Panel-driven updates: one acknowledgment after image_change_complete."""
+    await session.generate_reply(
+        instructions=(
+            "The avatar's appearance just finished updating on video. "
+            "Acknowledge the new look briefly in one short sentence. Do not call any tools."
+        ),
+        tool_choice="none",
+    )
 
 
 def _register_set_image_listener(
@@ -156,6 +179,7 @@ def _register_set_image_listener(
     current_image_url: list[str],
     image_ready: asyncio.Event,
     image_change_gate: ImageChangeCompleteGate,
+    session: AgentSession,
 ) -> None:
     """Client → agent: `{ \"type\": \"set_image\", \"image_url\": \"https://...\" }`."""
 
@@ -170,6 +194,7 @@ def _register_set_image_listener(
                 current_image_url=current_image_url,
                 image_ready=image_ready,
                 image_change_gate=image_change_gate,
+                session=session,
             )
         )
 
@@ -184,6 +209,7 @@ async def _handle_set_image(
     current_image_url: list[str],
     image_ready: asyncio.Event,
     image_change_gate: ImageChangeCompleteGate,
+    session: AgentSession,
 ) -> None:
     try:
         data = json.loads(raw.decode("utf-8"))
@@ -209,14 +235,18 @@ async def _handle_set_image(
         image_url=image_url.strip(),
         image_change_gate=image_change_gate,
     )
-    if generation is not None:
-        current_image_url[0] = image_url.strip()
-    else:
+    if generation is None:
         await publish_agent_event(
             room,
             "image_update_failed",
             {"message": "LemonSlice rejected the image URL."},
         )
+        return
+    current_image_url[0] = image_url.strip()
+    if await image_change_gate.wait(generation):
+        await speak_after_image_complete(session)
+    else:
+        logger.warning("Timed out waiting for image_change_complete after set_image")
 
 
 def _register_image_edit_listener(
@@ -227,6 +257,7 @@ def _register_image_edit_listener(
     image_ready: asyncio.Event,
     image_change_gate: ImageChangeCompleteGate,
     edit_task_box: list[asyncio.Task | None],
+    session: AgentSession,
 ) -> None:
     """Client → agent: Nano Banana edit on agent/image_edit."""
 
@@ -244,6 +275,7 @@ def _register_image_edit_listener(
                 current_image_url=current_image_url,
                 image_ready=image_ready,
                 image_change_gate=image_change_gate,
+                session=session,
             )
         )
 
@@ -258,6 +290,7 @@ async def _handle_image_edit(
     current_image_url: list[str],
     image_ready: asyncio.Event,
     image_change_gate: ImageChangeCompleteGate,
+    session: AgentSession,
 ) -> None:
     try:
         data = json.loads(raw.decode("utf-8"))
@@ -314,10 +347,7 @@ async def _handle_image_edit(
         image_url=new_url,
         image_change_gate=image_change_gate,
     )
-    if generation is not None:
-        current_image_url[0] = new_url
-        logger.info("Nano Banana edit applied request_id=%s", request_id)
-    else:
+    if generation is None:
         await publish_agent_event(
             room,
             "image_update_failed",
@@ -325,6 +355,16 @@ async def _handle_image_edit(
                 "request_id": request_id,
                 "message": "Could not apply the edited image to the avatar.",
             },
+        )
+        return
+    current_image_url[0] = new_url
+    logger.info("Nano Banana edit applied request_id=%s", request_id)
+    if await image_change_gate.wait(generation):
+        await speak_after_image_complete(session)
+    else:
+        logger.warning(
+            "Timed out waiting for image_change_complete after edit request_id=%s",
+            request_id,
         )
 
 
@@ -347,7 +387,7 @@ async def lemonslice_agent(ctx: agents.JobContext) -> None:
 
     avatar = lemonslice.AvatarSession(
         agent_image_url=AGENT_IMAGE_URL,
-        agent_prompt="A person talking.",
+        api_url="http://localhost:3000/api/liveai/sessions"
     )
 
     session_id = await avatar.start(session, room=ctx.room)
@@ -363,6 +403,7 @@ async def lemonslice_agent(ctx: agents.JobContext) -> None:
         current_image_url=current_image_url,
         image_ready=image_ready,
         image_change_gate=image_change_gate,
+        session=session,
     )
     _register_image_edit_listener(
         ctx.room,
@@ -371,6 +412,7 @@ async def lemonslice_agent(ctx: agents.JobContext) -> None:
         image_ready=image_ready,
         image_change_gate=image_change_gate,
         edit_task_box=edit_task_box,
+        session=session,
     )
 
     await session.start(

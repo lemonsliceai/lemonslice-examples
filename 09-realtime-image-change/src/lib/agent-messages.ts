@@ -26,6 +26,9 @@ export const IMAGE_CHANGE_TIMEOUT_MS = 60_000;
 /** Max wait for Fal edit → `image_accepted` / `image_update_failed`. */
 export const IMAGE_EDIT_TIMEOUT_MS = 120_000;
 
+/** Keep the event log bounded. */
+export const IMAGE_CHANGE_LOG_MAX = 40;
+
 export type SetImageCommandPayload = {
   type: "set_image";
   image_url: string;
@@ -47,15 +50,46 @@ export type ImageChangePhase =
   | "complete"
   | "error";
 
+export type ImageChangeLogKind =
+  | "image_accepted"
+  | "image_change_complete"
+  | "image_change_error"
+  | "image_update_failed";
+
+export type ImageChangeLogEntry = {
+  id: string;
+  at: number;
+  kind: ImageChangeLogKind;
+  message?: string;
+};
+
 export type ImageChangeState = {
   phase: ImageChangePhase;
   /** Last image URL accepted by LemonSlice control (or base). */
   currentImageUrl: string | null;
-  /** Human-readable status line for the education panel. */
-  detail: string;
-  lastEvent: string | null;
-  error: string | null;
+  /** Newest events last. */
+  events: ImageChangeLogEntry[];
 };
+
+export function appendImageChangeLog(
+  state: ImageChangeState,
+  kind: ImageChangeLogKind,
+  message?: string,
+): ImageChangeState {
+  const entry: ImageChangeLogEntry = {
+    id:
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    at: Date.now(),
+    kind,
+    message,
+  };
+  return {
+    ...state,
+    events: [...state.events, entry].slice(-IMAGE_CHANGE_LOG_MAX),
+  };
+}
 
 export async function publishSetImageCommand(
   participant: LocalParticipant,
