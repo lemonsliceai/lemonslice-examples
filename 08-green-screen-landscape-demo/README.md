@@ -31,7 +31,7 @@ Project layout:
    | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | Next token route and agent room connection.                                                        |
    | `LIVEKIT_AGENT_NAME`                                   | LiveKit worker registration / dispatch name.                                                       |
    | `AGENT_IMAGE_URL`                                      | Avatar reference image for the agent worker.                                                        |
-   | `LEMONSLICE_API_KEY`                                   | Find this in your [LemonSlice account page](https://lemonslice.com/account).                       |
+   | `LEMONSLICE_API_KEY`                                   | Find this in your [Developer Portal](https://lemonslice.com/developers).                       |
    | `GROQ_API_KEY`                                         | Groq API key for the LLM (`llama-3.3-70b-versatile`).                                              |
    | `ELEVENLABS_VOICE_ID`, `ELEVEN_API_KEY`                | ElevenLabs voice and API key for TTS (`eleven_flash_v2_5`).                                        |
 
@@ -41,7 +41,7 @@ Project layout:
 
    ```bash
    npm install
-   cd agent && uv sync
+   cd agent && uv sync && cd ..
    ```
 
 ## Run locally

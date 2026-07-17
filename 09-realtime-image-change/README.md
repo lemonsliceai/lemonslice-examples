@@ -1,25 +1,8 @@
 # realtime-image-change
 
-End-to-end demo of LemonSlice **realtime image updates** (`update-image`) on a LiveKit self-managed pipeline.
-
-Uses the [Control self-managed session](https://lemonslice.com/docs/api-reference/control-self-managed-session) API:
-
-```json
-{ "event": "update-image", "image_url": "https://example.com/avatar.jpg" } // public URL
-{ "event": "update-image", "image_base64": "<base64-encoded image>" } // inline bytes
-```
-
-## What this demo shows
+This repo provides an end-to-end demo of **real-time image updates** (`update-image`) during a LemonSlice call. At any point in the session, you can change the avatar’s reference image three ways: LLM tool calls that apply local presets (triggered via conversational context), directly from a user-provided URL or image upload, or a Nano Banana edit that generates a new image variant from a text prompt. The UI listens for `image_change_complete` / `image_change_error` so you can see when the video transition finishes. See our [guide](https://lemonslice.com/docs/reference/realtime-updates) for more information.
 
 https://github.com/user-attachments/assets/8750b7fe-b3aa-40f0-b273-7391ca3006e8
-
-Three ways to trigger `update-image`:
-
-1. **LLM tools** — conversation picks a preset (`go_to_work`, `go_outside`, …)
-2. **URL or upload** — panel sends `image_url` / `image_base64` via `agent/set_image`
-3. **Fal edit** — panel prompt → Nano Banana → apply result
-
-Then listen for completion: `image_change_complete` / `image_change_error` on the LemonSlice `lemonslice` topic.
 
 ## Layout
 
@@ -48,7 +31,7 @@ Then listen for completion: `image_change_complete` / `image_change_error` on th
 
    ```bash
    npm install
-   cd agent && uv sync
+   cd agent && uv sync && cd ..
    ```
 
 ## Run locally

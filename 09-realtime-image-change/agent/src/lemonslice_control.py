@@ -9,6 +9,7 @@ import logging
 import os
 from io import BytesIO
 from pathlib import Path
+from typing import Literal
 
 import fal_client
 import httpx
@@ -33,35 +34,43 @@ TARGET_IMAGE_WIDTH = 368
 TARGET_IMAGE_HEIGHT = 560
 
 
+ImageChangeOutcome = Literal["complete", "error"]
+
+
 class ImageChangeCompleteGate:
     """
-    Arms before ``update-image``, then waits for the avatar's ``image_change_complete``
-    (or ``image_change_error``) on ``lemonslice`` so spoken reactions start after the
-    new image is on video.
+    Arms before ``update-image``, then waits for the avatar's terminal
+    ``image_change_complete`` / ``image_change_error`` on ``lemonslice``.
     """
 
     def __init__(self) -> None:
         self._event = asyncio.Event()
         self._generation = 0
+        self._outcome: ImageChangeOutcome | None = None
 
     def arm(self) -> int:
         self._generation += 1
+        self._outcome = None
         self._event.clear()
         return self._generation
 
-    def notify(self) -> None:
+    def notify(self, outcome: ImageChangeOutcome) -> None:
+        self._outcome = outcome
         self._event.set()
 
     async def wait(
         self,
         generation: int,
         timeout: float = IMAGE_CHANGE_COMPLETE_TIMEOUT_S,
-    ) -> bool:
+    ) -> ImageChangeOutcome | None:
+        """Return ``complete`` / ``error``, or ``None`` on timeout / stale generation."""
         try:
             await asyncio.wait_for(self._event.wait(), timeout=timeout)
         except asyncio.TimeoutError:
-            return False
-        return self._generation == generation
+            return None
+        if self._generation != generation:
+            return None
+        return self._outcome
 
 
 def register_image_change_complete_listener(
@@ -84,9 +93,13 @@ def register_image_change_complete_listener(
             return
         if not isinstance(data, dict):
             return
-        if data.get("type") in ("image_change_complete", "image_change_error"):
-            logger.info("Avatar %s on lemonslice", data.get("type"))
-            gate.notify()
+        event_type = data.get("type")
+        if event_type == "image_change_complete":
+            logger.info("Avatar image_change_complete on lemonslice")
+            gate.notify("complete")
+        elif event_type == "image_change_error":
+            logger.info("Avatar image_change_error on lemonslice")
+            gate.notify("error")
 
     room.on("data_received", on_data_received)
 
@@ -202,24 +215,30 @@ async def lemonslice_control_update_image(
         body["image_base64"] = image_base64.strip()
 
     url = lemonslice_session_control_url(session_id)
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            url,
-            headers={
-                "Content-Type": "application/json",
-                "X-API-Key": api_key,
-            },
-            json=body,
-            timeout=30.0,
-        )
-        if response.is_success:
-            return True
-        logger.error(
-            "LemonSlice update-image failed: %s %s",
-            response.status_code,
-            response.text,
-        )
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-API-Key": api_key,
+                },
+                json=body,
+                timeout=30.0,
+            )
+    except httpx.HTTPError:
+        # Transport / timeout — do not retry; update-image is not idempotent.
+        logger.exception("LemonSlice update-image transport error")
         return False
+
+    if response.is_success:
+        return True
+    logger.error(
+        "LemonSlice update-image failed: %s %s",
+        response.status_code,
+        response.text,
+    )
+    return False
 
 
 async def apply_image_and_notify(

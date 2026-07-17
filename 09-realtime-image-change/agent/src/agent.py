@@ -13,6 +13,8 @@ import json
 import logging
 import os
 import pathlib
+from collections.abc import Coroutine
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -67,7 +69,7 @@ AGENT_NAME = os.getenv("AGENT_NAME")
 if not AGENT_NAME:
     raise RuntimeError("Missing required env var: AGENT_NAME")
 
-ASSISTANT_INSTRUCTIONS = f"""
+ASSISTANT_INSTRUCTIONS = """
 You are Jess, an AI avatar powered by LemonSlice.
 You can change your appearance mid-call using tools when the conversation calls for it.
 
@@ -93,34 +95,53 @@ Three sentences or less.
 """.strip()
 
 
+class CallState:
+    """Mutable per-call state shared by the agent and data listeners."""
+
+    def __init__(
+        self,
+        *,
+        session_id: str,
+        image_url: str | None,
+        image_bytes: bytes | None,
+    ) -> None:
+        self.session_id = session_id
+        self.image_url = image_url
+        self.image_bytes = image_bytes
+        self.image_ready = asyncio.Event()
+        self.image_change_gate = ImageChangeCompleteGate()
+        self.edit_task: asyncio.Task[Any] | None = None
+        self._bg_tasks: set[asyncio.Task[Any]] = set()
+
+    def spawn(self, coro: Coroutine[Any, Any, Any]) -> asyncio.Task[Any]:
+        """Keep a strong ref so fire-and-forget tasks are not GC'd mid-flight."""
+        task = asyncio.create_task(coro)
+        self._bg_tasks.add(task)
+        task.add_done_callback(self._bg_tasks.discard)
+        return task
+
+
 class Assistant(Agent):
     def __init__(
         self,
         *,
         room: rtc.Room,
-        lemonslice_session_id: str,
-        current_image_url: list[str | None],
-        current_image_bytes: list[bytes | None],
-        image_ready: asyncio.Event,
-        image_change_gate: ImageChangeCompleteGate,
+        state: CallState,
     ) -> None:
         super().__init__(instructions=ASSISTANT_INSTRUCTIONS)
         self._room = room
-        self._session_id = lemonslice_session_id
-        self._current_image_url = current_image_url
-        self._current_image_bytes = current_image_bytes
-        self._image_ready = image_ready
-        self._image_change_gate = image_change_gate
+        self._state = state
 
     async def _apply_local_image(
         self, path: pathlib.Path, label: str, *, tool_name: str
     ) -> str:
+        state = self._state
         await publish_agent_event(
             self._room,
             "tool_call",
             {"message": tool_name},
         )
-        if not self._image_ready.is_set():
+        if not state.image_ready.is_set():
             return "Avatar is not ready for image updates yet — wait a moment and try again."
         try:
             image_base64 = load_local_image_base64(path)
@@ -131,23 +152,23 @@ class Assistant(Agent):
 
         generation = await apply_image_and_notify(
             self._room,
-            lemonslice_session_id=self._session_id,
+            lemonslice_session_id=state.session_id,
             image_base64=image_base64,
-            image_change_gate=self._image_change_gate,
+            image_change_gate=state.image_change_gate,
         )
         if generation is None:
             return f"Could not apply the {label} image via LemonSlice control update-image."
-        saw_complete = await self._image_change_gate.wait(generation)
-        if not saw_complete:
+        outcome = await state.image_change_gate.wait(generation)
+        if outcome != "complete":
             logger.warning(
-                "Timed out waiting for image_change_complete after %s update", label
+                "Image change %s after %s update", outcome or "timeout", label
             )
             return (
-                f"The {label} image was sent but the video transition timed out. "
+                f"The {label} image was sent but the video transition did not complete. "
                 "Do not claim the look definitely changed."
             )
-        self._current_image_url[0] = None
-        self._current_image_bytes[0] = image_bytes
+        state.image_url = None
+        state.image_bytes = image_bytes
         return (
             f"The avatar image has finished updating to the {label} look. "
             "Acknowledge the new appearance briefly."
@@ -202,11 +223,7 @@ async def speak_after_image_complete(session: AgentSession) -> None:
 def _register_set_image_listener(
     room: rtc.Room,
     *,
-    lemonslice_session_id: str,
-    current_image_url: list[str | None],
-    current_image_bytes: list[bytes | None],
-    image_ready: asyncio.Event,
-    image_change_gate: ImageChangeCompleteGate,
+    state: CallState,
     session: AgentSession,
 ) -> None:
     """Client → agent: set_image with image_url and/or image_base64."""
@@ -214,15 +231,11 @@ def _register_set_image_listener(
     def on_data(packet: DataPacket) -> None:
         if packet.topic != AGENT_SET_IMAGE_TOPIC:
             return
-        asyncio.create_task(
+        state.spawn(
             _handle_set_image(
                 packet.data,
                 room=room,
-                lemonslice_session_id=lemonslice_session_id,
-                current_image_url=current_image_url,
-                current_image_bytes=current_image_bytes,
-                image_ready=image_ready,
-                image_change_gate=image_change_gate,
+                state=state,
                 session=session,
             )
         )
@@ -234,11 +247,7 @@ async def _handle_set_image(
     raw: bytes,
     *,
     room: rtc.Room,
-    lemonslice_session_id: str,
-    current_image_url: list[str | None],
-    current_image_bytes: list[bytes | None],
-    image_ready: asyncio.Event,
-    image_change_gate: ImageChangeCompleteGate,
+    state: CallState,
     session: AgentSession,
 ) -> None:
     try:
@@ -261,7 +270,7 @@ async def _handle_set_image(
         )
         return
 
-    if not image_ready.is_set():
+    if not state.image_ready.is_set():
         logger.warning("agent/set_image: avatar not ready yet")
         await publish_agent_event(
             room,
@@ -288,18 +297,18 @@ async def _handle_set_image(
             return
         generation = await apply_image_and_notify(
             room,
-            lemonslice_session_id=lemonslice_session_id,
+            lemonslice_session_id=state.session_id,
             image_base64=raw_b64,
-            image_change_gate=image_change_gate,
+            image_change_gate=state.image_change_gate,
         )
         fail_message = "LemonSlice rejected the uploaded image."
     else:
         applied_url = image_url.strip()
         generation = await apply_image_and_notify(
             room,
-            lemonslice_session_id=lemonslice_session_id,
+            lemonslice_session_id=state.session_id,
             image_url=applied_url,
-            image_change_gate=image_change_gate,
+            image_change_gate=state.image_change_gate,
         )
         fail_message = "LemonSlice rejected the image URL."
 
@@ -311,23 +320,21 @@ async def _handle_set_image(
         )
         return
 
-    current_image_url[0] = applied_url
-    current_image_bytes[0] = applied_bytes
-    if await image_change_gate.wait(generation):
+    outcome = await state.image_change_gate.wait(generation)
+    if outcome == "complete":
+        state.image_url = applied_url
+        state.image_bytes = applied_bytes
         await speak_after_image_complete(session)
     else:
-        logger.warning("Timed out waiting for image_change_complete after set_image")
+        logger.warning(
+            "Image change %s after set_image", outcome or "timeout"
+        )
 
 
 def _register_image_edit_listener(
     room: rtc.Room,
     *,
-    lemonslice_session_id: str,
-    current_image_url: list[str | None],
-    current_image_bytes: list[bytes | None],
-    image_ready: asyncio.Event,
-    image_change_gate: ImageChangeCompleteGate,
-    edit_task_box: list[asyncio.Task | None],
+    state: CallState,
     session: AgentSession,
 ) -> None:
     """Client → agent: Nano Banana edit on agent/image_edit."""
@@ -335,18 +342,14 @@ def _register_image_edit_listener(
     def on_data(packet: DataPacket) -> None:
         if packet.topic != AGENT_IMAGE_EDIT_TOPIC:
             return
-        prev = edit_task_box[0]
+        prev = state.edit_task
         if prev is not None and not prev.done():
             prev.cancel()
-        edit_task_box[0] = asyncio.create_task(
+        state.edit_task = state.spawn(
             _handle_image_edit(
                 packet.data,
                 room=room,
-                lemonslice_session_id=lemonslice_session_id,
-                current_image_url=current_image_url,
-                current_image_bytes=current_image_bytes,
-                image_ready=image_ready,
-                image_change_gate=image_change_gate,
+                state=state,
                 session=session,
             )
         )
@@ -358,11 +361,7 @@ async def _handle_image_edit(
     raw: bytes,
     *,
     room: rtc.Room,
-    lemonslice_session_id: str,
-    current_image_url: list[str | None],
-    current_image_bytes: list[bytes | None],
-    image_ready: asyncio.Event,
-    image_change_gate: ImageChangeCompleteGate,
+    state: CallState,
     session: AgentSession,
 ) -> None:
     try:
@@ -392,15 +391,15 @@ async def _handle_image_edit(
     source_bytes: bytes | None = None
     if isinstance(source, str) and source.strip().startswith(("http://", "https://")):
         source_url = source.strip()
-    elif current_image_bytes[0] is not None:
-        source_bytes = current_image_bytes[0]
-    elif current_image_url[0]:
-        source_url = current_image_url[0]
+    elif state.image_bytes is not None:
+        source_bytes = state.image_bytes
+    elif state.image_url:
+        source_url = state.image_url
     else:
         # Fall back to the local base preset.
         source_bytes = AGENT_IMAGE_PATH.read_bytes()
 
-    if not image_ready.is_set():
+    if not state.image_ready.is_set():
         await publish_agent_event(
             room,
             "image_update_failed",
@@ -449,9 +448,9 @@ async def _handle_image_edit(
         logger.exception("Failed to normalize edited image; falling back to URL")
         generation = await apply_image_and_notify(
             room,
-            lemonslice_session_id=lemonslice_session_id,
+            lemonslice_session_id=state.session_id,
             image_url=new_url,
-            image_change_gate=image_change_gate,
+            image_change_gate=state.image_change_gate,
         )
         if generation is None:
             await publish_agent_event(
@@ -463,14 +462,13 @@ async def _handle_image_edit(
                 },
             )
             return
-        current_image_url[0] = new_url
-        current_image_bytes[0] = None
+        pending_url, pending_bytes = new_url, None
     else:
         generation = await apply_image_and_notify(
             room,
-            lemonslice_session_id=lemonslice_session_id,
+            lemonslice_session_id=state.session_id,
             image_base64=normalized_b64,
-            image_change_gate=image_change_gate,
+            image_change_gate=state.image_change_gate,
         )
         if generation is None:
             await publish_agent_event(
@@ -482,15 +480,18 @@ async def _handle_image_edit(
                 },
             )
             return
-        current_image_url[0] = new_url
-        current_image_bytes[0] = applied_bytes
+        pending_url, pending_bytes = new_url, applied_bytes
 
     logger.info("Nano Banana edit applied request_id=%s", request_id)
-    if await image_change_gate.wait(generation):
+    outcome = await state.image_change_gate.wait(generation)
+    if outcome == "complete":
+        state.image_url = pending_url
+        state.image_bytes = pending_bytes
         await speak_after_image_complete(session)
     else:
         logger.warning(
-            "Timed out waiting for image_change_complete after edit request_id=%s",
+            "Image change %s after edit request_id=%s",
+            outcome or "timeout",
             request_id,
         )
 
@@ -512,50 +513,40 @@ async def lemonslice_agent(ctx: agents.JobContext) -> None:
 
     await ctx.connect()
 
+    # Buffer client avatar_ready before avatar/session start — the packet can arrive
+    # as soon as the stream is ready and would otherwise be lost.
+    avatar_ready_event = asyncio.Event()
+
+    def on_avatar_ready(packet: DataPacket) -> None:
+        if packet.topic != AGENT_AVATAR_READY_TOPIC:
+            return
+        try:
+            data = json.loads(packet.data.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return
+        if isinstance(data, dict) and data.get("type") == "avatar_ready":
+            avatar_ready_event.set()
+
+    ctx.room.on("data_received", on_avatar_ready)
+
     avatar = lemonslice.AvatarSession(
         agent_image_url=AGENT_IMAGE_URL,
     )
 
     session_id = await avatar.start(session, room=ctx.room)
-    current_image_url: list[str | None] = [AGENT_IMAGE_URL]
-    current_image_bytes: list[bytes | None] = [
-        AGENT_IMAGE_PATH.read_bytes() if AGENT_IMAGE_PATH.exists() else None
-    ]
-    image_ready = asyncio.Event()
-    image_change_gate = ImageChangeCompleteGate()
-    edit_task_box: list[asyncio.Task | None] = [None]
+    state = CallState(
+        session_id=session_id,
+        image_url=AGENT_IMAGE_URL,
+        image_bytes=AGENT_IMAGE_PATH.read_bytes() if AGENT_IMAGE_PATH.exists() else None,
+    )
 
-    register_image_change_complete_listener(ctx.room, image_change_gate)
-    _register_set_image_listener(
-        ctx.room,
-        lemonslice_session_id=session_id,
-        current_image_url=current_image_url,
-        current_image_bytes=current_image_bytes,
-        image_ready=image_ready,
-        image_change_gate=image_change_gate,
-        session=session,
-    )
-    _register_image_edit_listener(
-        ctx.room,
-        lemonslice_session_id=session_id,
-        current_image_url=current_image_url,
-        current_image_bytes=current_image_bytes,
-        image_ready=image_ready,
-        image_change_gate=image_change_gate,
-        edit_task_box=edit_task_box,
-        session=session,
-    )
+    register_image_change_complete_listener(ctx.room, state.image_change_gate)
+    _register_set_image_listener(ctx.room, state=state, session=session)
+    _register_image_edit_listener(ctx.room, state=state, session=session)
 
     await session.start(
         room=ctx.room,
-        agent=Assistant(
-            room=ctx.room,
-            lemonslice_session_id=session_id,
-            current_image_url=current_image_url,
-            current_image_bytes=current_image_bytes,
-            image_ready=image_ready,
-            image_change_gate=image_change_gate,
-        ),
+        agent=Assistant(room=ctx.room, state=state),
         room_options=room_io.RoomOptions(
             audio_input=room_io.AudioInputOptions(
                 noise_cancellation=noise_cancellation.BVC(),
@@ -572,7 +563,7 @@ async def lemonslice_agent(ctx: agents.JobContext) -> None:
             if p.identity == identity:
                 # Brief settle so LemonSlice marks the session ACTIVE.
                 await asyncio.sleep(2.0)
-                image_ready.set()
+                state.image_ready.set()
                 logger.info("Image updates enabled (avatar present)")
                 return
 
@@ -586,41 +577,25 @@ async def lemonslice_agent(ctx: agents.JobContext) -> None:
         try:
             await asyncio.wait_for(ready.wait(), timeout=60)
             await asyncio.sleep(2.0)
-            image_ready.set()
+            state.image_ready.set()
             logger.info("Image updates enabled (avatar joined)")
         except asyncio.TimeoutError:
             logger.warning("Avatar did not join; enabling image updates anyway")
-            image_ready.set()
+            state.image_ready.set()
 
-    asyncio.create_task(_mark_ready_when_avatar_joins())
+    state.spawn(_mark_ready_when_avatar_joins())
 
-    # Greet only after the client reports the avatar stream is ready
-    # (LiveKitAvatarReadyWatcher → agent/avatar_ready).
-    greeted = False
-
-    def on_avatar_ready(packet: DataPacket) -> None:
-        nonlocal greeted
-        if packet.topic != AGENT_AVATAR_READY_TOPIC or greeted:
-            return
-        try:
-            data = json.loads(packet.data.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            return
-        if not isinstance(data, dict) or data.get("type") != "avatar_ready":
-            return
-        greeted = True
+    # Greet after session start once the (possibly early) avatar_ready arrives.
+    async def _greet_when_ready() -> None:
+        await avatar_ready_event.wait()
         logger.info("Client avatar_ready; generating greeting")
-
-        async def _greet() -> None:
-            await session.generate_reply(
-                instructions=(
-                    "Greet the user briefly and let them know you can change apperance (suggest one of the tool call options)"
-                )
+        await session.generate_reply(
+            instructions=(
+                "Greet the user briefly and let them know you can change apperance (suggest one of the tool call options)"
             )
+        )
 
-        asyncio.create_task(_greet())
-
-    ctx.room.on("data_received", on_avatar_ready)
+    state.spawn(_greet_when_ready())
 
 
 if __name__ == "__main__":

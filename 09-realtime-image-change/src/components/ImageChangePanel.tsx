@@ -56,7 +56,7 @@ export function ImageChangePanel({
   const [preparingUpload, setPreparingUpload] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
-  const busy = state.phase === "sending" || state.phase === "editing" || preparingUpload;
+  const busy = state.phase === "editing" || preparingUpload;
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });

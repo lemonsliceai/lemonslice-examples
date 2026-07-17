@@ -23,6 +23,7 @@ import {
   RoomEvent,
   ConnectionState,
   isVideoTrack,
+  ParticipantKind,
   type Participant,
   type RemoteParticipant,
 } from "livekit-client";
@@ -122,7 +123,7 @@ function ActiveCallPanel({
     watchdogRef.current = setTimeout(() => {
       setImageState((s) =>
         appendImageChangeLog(
-          { ...s, phase: "error" },
+          { ...s, phase: "idle" },
           "image_change_error",
           "Timed out waiting for image_change_complete",
         ),
@@ -155,7 +156,9 @@ function ActiveCallPanel({
   const [toastVisible, setToastVisible] = useState(false);
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const agentIdentity = remoteParticipants[0]?.identity ?? null;
+  // The worker joins as ParticipantKind.AGENT; the avatar is a separate standard participant.
+  const agentIdentity =
+    remoteParticipants.find((p) => p.kind === ParticipantKind.AGENT)?.identity ?? null;
 
   const showToast = useCallback((text: string, duration = 3000) => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -168,22 +171,21 @@ function ActiveCallPanel({
     }, duration);
   }, []);
 
-  // Temporarily hide in-call transcript toast
-  // useEffect(() => {
-  //   const handler = (
-  //     segments: { text: string; final?: boolean }[],
-  //     participant: { identity: string } | undefined,
-  //   ) => {
-  //     if (!participant || participant.identity !== room.localParticipant.identity) return;
-  //     const text = segments.map((s) => s.text).join(" ").trim();
-  //     if (text) showToast(text);
-  //   };
-  //   room.on(RoomEvent.TranscriptionReceived, handler);
-  //   return () => {
-  //     room.off(RoomEvent.TranscriptionReceived, handler);
-  //     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-  //   };
-  // }, [room, showToast]);
+  useEffect(() => {
+    const handler = (
+      segments: { text: string; final?: boolean }[],
+      participant: { identity: string } | undefined,
+    ) => {
+      if (!participant || participant.identity !== room.localParticipant.identity) return;
+      const text = segments.map((s) => s.text).join(" ").trim();
+      if (text) showToast(text);
+    };
+    room.on(RoomEvent.TranscriptionReceived, handler);
+    return () => {
+      room.off(RoomEvent.TranscriptionReceived, handler);
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
+  }, [room, showToast]);
 
   useEffect(() => {
     const onParticipantDisconnected = (p: Participant) => {
@@ -228,7 +230,7 @@ function ActiveCallPanel({
         if (data.type === "image_change_complete") {
           clearWatchdogs();
           setImageState((s) =>
-            appendImageChangeLog({ ...s, phase: "complete" }, "image_change_complete"),
+            appendImageChangeLog({ ...s, phase: "idle" }, "image_change_complete"),
           );
           return;
         }
@@ -237,7 +239,7 @@ function ActiveCallPanel({
           const msg = data.message ?? "Image change failed";
           showToast(msg);
           setImageState((s) =>
-            appendImageChangeLog({ ...s, phase: "error" }, "image_change_error", msg),
+            appendImageChangeLog({ ...s, phase: "idle" }, "image_change_error", msg),
           );
         }
         return;
@@ -270,8 +272,6 @@ function ActiveCallPanel({
           appendImageChangeLog(
             {
               ...s,
-              // Keep Fal transition UI until image_change_complete / error.
-              phase: s.phase === "editing" ? "editing" : "idle",
               currentImageUrl: data.image_url ?? s.currentImageUrl,
             },
             "image_accepted",
@@ -286,7 +286,7 @@ function ActiveCallPanel({
         const msg = data.message ?? "Image update failed";
         showToast(msg);
         setImageState((s) =>
-          appendImageChangeLog({ ...s, phase: "error" }, "image_update_failed", msg),
+          appendImageChangeLog({ ...s, phase: "idle" }, "image_update_failed", msg),
         );
       }
     };
@@ -323,19 +323,17 @@ function ActiveCallPanel({
     async (url: string) => {
       if (room.state !== ConnectionState.Connected) return;
       clearWatchdogs();
-      setImageState((s) => ({ ...s, phase: "sending" }));
       try {
         await publishSetImageCommand(room.localParticipant, {
           type: "set_image",
           image_url: url,
         });
         armImageChangeWatchdog();
-        setImageState((s) => ({ ...s, phase: "idle" }));
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Failed to publish set_image";
         showToast(msg);
         setImageState((s) =>
-          appendImageChangeLog({ ...s, phase: "error" }, "image_update_failed", msg),
+          appendImageChangeLog(s, "image_update_failed", msg),
         );
       }
     },
@@ -346,19 +344,17 @@ function ActiveCallPanel({
     async (imageBase64: string) => {
       if (room.state !== ConnectionState.Connected) return;
       clearWatchdogs();
-      setImageState((s) => ({ ...s, phase: "sending" }));
       try {
         await publishSetImageCommand(room.localParticipant, {
           type: "set_image",
           image_base64: imageBase64,
         });
         armImageChangeWatchdog();
-        setImageState((s) => ({ ...s, phase: "idle" }));
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Failed to publish uploaded image";
         showToast(msg);
         setImageState((s) =>
-          appendImageChangeLog({ ...s, phase: "error" }, "image_update_failed", msg),
+          appendImageChangeLog(s, "image_update_failed", msg),
         );
       }
     },
@@ -377,7 +373,7 @@ function ActiveCallPanel({
       editWatchdogRef.current = setTimeout(() => {
         setImageState((s) =>
           appendImageChangeLog(
-            { ...s, phase: "error" },
+            { ...s, phase: "idle" },
             "image_update_failed",
             "Timed out waiting for image_accepted",
           ),
@@ -395,7 +391,7 @@ function ActiveCallPanel({
         const msg = e instanceof Error ? e.message : "Failed to publish edit";
         showToast(msg);
         setImageState((s) =>
-          appendImageChangeLog({ ...s, phase: "error" }, "image_update_failed", msg),
+          appendImageChangeLog({ ...s, phase: "idle" }, "image_update_failed", msg),
         );
       }
     },
@@ -493,14 +489,31 @@ export default function AgentCallUI({
   const [tokenState, setTokenState] = useState<{ token: string; serverUrl: string } | null>(
     null,
   );
+  /**
+   * After hang-up / avatar leave, ignore controlled token props so the call can
+   * unmount. Local Start Call then uses tokenState; a new tokenProp from the
+   * parent clears this and takes over again.
+   */
+  const [ignoreTokenProps, setIgnoreTokenProps] = useState(false);
   const [imageState, setImageState] = useState<ImageChangeState>(INITIAL_IMAGE_STATE);
   const [activeSize, setActiveSize] = useState({
     width: customActiveWidth ?? 280,
     height: customActiveHeight ?? 420,
   });
 
-  const token = tokenProp ?? tokenState?.token ?? null;
-  const serverUrl = serverUrlProp ?? tokenState?.serverUrl ?? null;
+  // Parent pushed new credentials — accept them for a fresh session.
+  useEffect(() => {
+    if (!tokenProp || !serverUrlProp) return;
+    setIgnoreTokenProps(false);
+    setTokenState(null);
+  }, [tokenProp, serverUrlProp]);
+
+  const token = ignoreTokenProps
+    ? (tokenState?.token ?? null)
+    : (tokenProp ?? tokenState?.token ?? null);
+  const serverUrl = ignoreTokenProps
+    ? (tokenState?.serverUrl ?? null)
+    : (serverUrlProp ?? tokenState?.serverUrl ?? null);
 
   const activeWidth = customActiveWidth ?? activeSize.width;
   const activeHeight = customActiveHeight ?? activeSize.height;
@@ -533,29 +546,28 @@ export default function AgentCallUI({
     return () => window.removeEventListener("resize", calc);
   }, [customActiveWidth, customActiveHeight]);
 
+  const endSession = useCallback(() => {
+    setTokenState(null);
+    setIgnoreTokenProps(true);
+  }, []);
+
   const handleStartCall = useCallback(async () => {
     try {
       const res = await fetch("/api/token");
       if (!res.ok) throw new Error("Token failed");
       const data = (await res.json()) as { token: string; serverUrl: string };
       setImageState(INITIAL_IMAGE_STATE);
+      // Prefer this fetch over any stale controlled props from before hang-up.
+      setIgnoreTokenProps(true);
       setTokenState({ token: data.token, serverUrl: data.serverUrl });
     } catch (e) {
       console.error(e);
     }
   }, []);
 
-  const handleDisconnected = useCallback(() => {
-    setTokenState(null);
-  }, []);
-
-  const handleHangUp = useCallback(() => {
-    setTokenState(null);
-  }, []);
-
-  const handleAvatarDisconnected = useCallback(() => {
-    setTokenState(null);
-  }, []);
+  const handleDisconnected = endSession;
+  const handleHangUp = endSession;
+  const handleAvatarDisconnected = endSession;
 
   const placeholderVideo = placeholderVideoUrl ?? DEFAULT_PLACEHOLDER_VIDEO;
 

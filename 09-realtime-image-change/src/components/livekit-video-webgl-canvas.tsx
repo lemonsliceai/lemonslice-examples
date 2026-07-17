@@ -1604,15 +1604,16 @@ export function LivekitVideoWebGLCanvas({
          * sentinel would pin the mask to `circleR` unless every bucket was
          * overridden together.
          */
+        // Preset radii are CSS px; shader space is framebuffer px (contentCss × dpr).
         const collapsedIdleCornerR = Math.min(
           circleR,
-          merged.collapsed.cornerRadiusPx
+          merged.collapsed.cornerRadiusPx * dpr
         );
         /** Loading (and collapsedLoading debug) always uses an inscribed circle. */
         const collapsedCornerR = lerp(collapsedIdleCornerR, circleR, loadingT);
         let cornerRadiusPx = lerp(
           collapsedCornerR,
-          merged.expanded.cornerRadiusPx,
+          merged.expanded.cornerRadiusPx * dpr,
           expandBlendT
         );
         /**
@@ -1770,59 +1771,65 @@ export function LivekitVideoWebGLCanvas({
         gl.viewport(padPx, padPx, contentPixelW, contentPixelH);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-        // Pass 2: horizontal blur (sample combined on unit 4 — compose uses 0–1)
-        gl.useProgram(blurProgram);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, blurFboA);
-        gl.viewport(0, 0, rtWidth, rtHeight);
-        gl.activeTexture(gl.TEXTURE4);
-        gl.bindTexture(gl.TEXTURE_2D, combinedTexture);
-        if (blurUniforms.image) gl.uniform1i(blurUniforms.image, 4);
-        if (blurUniforms.texelSize) gl.uniform2f(blurUniforms.texelSize, 1 / rtWidth, 1 / rtHeight);
-        if (blurUniforms.direction) gl.uniform2f(blurUniforms.direction, 1.0, 0.0);
-        if (blurUniforms.blurRadiusScale)
-          gl.uniform1f(blurUniforms.blurRadiusScale, blurRadiusScale);
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        // Passes 2–5: separable blur. Skip when radius is 0 (most idle/expanded presets).
+        const skipBlur = blurRadiusScale < 0.001;
+        if (!skipBlur) {
+          // Pass 2: horizontal blur (sample combined on unit 4 — compose uses 0–1)
+          gl.useProgram(blurProgram);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, blurFboA);
+          gl.viewport(0, 0, rtWidth, rtHeight);
+          gl.activeTexture(gl.TEXTURE4);
+          gl.bindTexture(gl.TEXTURE_2D, combinedTexture);
+          if (blurUniforms.image) gl.uniform1i(blurUniforms.image, 4);
+          if (blurUniforms.texelSize)
+            gl.uniform2f(blurUniforms.texelSize, 1 / rtWidth, 1 / rtHeight);
+          if (blurUniforms.direction) gl.uniform2f(blurUniforms.direction, 1.0, 0.0);
+          if (blurUniforms.blurRadiusScale)
+            gl.uniform1f(blurUniforms.blurRadiusScale, blurRadiusScale);
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-        // Pass 3: vertical blur
-        gl.bindFramebuffer(gl.FRAMEBUFFER, blurFboB);
-        gl.viewport(0, 0, rtWidth, rtHeight);
-        gl.activeTexture(gl.TEXTURE5);
-        gl.bindTexture(gl.TEXTURE_2D, blurTextureA);
-        if (blurUniforms.image) gl.uniform1i(blurUniforms.image, 5);
-        if (blurUniforms.direction) gl.uniform2f(blurUniforms.direction, 0.0, 1.0);
-        if (blurUniforms.blurRadiusScale)
-          gl.uniform1f(blurUniforms.blurRadiusScale, blurRadiusScale);
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
+          // Pass 3: vertical blur
+          gl.bindFramebuffer(gl.FRAMEBUFFER, blurFboB);
+          gl.viewport(0, 0, rtWidth, rtHeight);
+          gl.activeTexture(gl.TEXTURE5);
+          gl.bindTexture(gl.TEXTURE_2D, blurTextureA);
+          if (blurUniforms.image) gl.uniform1i(blurUniforms.image, 5);
+          if (blurUniforms.direction) gl.uniform2f(blurUniforms.direction, 0.0, 1.0);
+          if (blurUniforms.blurRadiusScale)
+            gl.uniform1f(blurUniforms.blurRadiusScale, blurRadiusScale);
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-        // Passes 4–5: second separable blur (smaller radius) widens the kernel ~√2 without harsh edges.
-        const blurSecondPassScale = blurRadiusScale * 0.5;
-        gl.bindFramebuffer(gl.FRAMEBUFFER, blurFboA);
-        gl.viewport(0, 0, rtWidth, rtHeight);
-        gl.activeTexture(gl.TEXTURE4);
-        gl.bindTexture(gl.TEXTURE_2D, blurTextureB);
-        if (blurUniforms.image) gl.uniform1i(blurUniforms.image, 4);
-        if (blurUniforms.texelSize) gl.uniform2f(blurUniforms.texelSize, 1 / rtWidth, 1 / rtHeight);
-        if (blurUniforms.direction) gl.uniform2f(blurUniforms.direction, 1.0, 0.0);
-        if (blurUniforms.blurRadiusScale)
-          gl.uniform1f(blurUniforms.blurRadiusScale, blurSecondPassScale);
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
+          // Passes 4–5: second separable blur (smaller radius) widens the kernel ~√2.
+          const blurSecondPassScale = blurRadiusScale * 0.5;
+          gl.bindFramebuffer(gl.FRAMEBUFFER, blurFboA);
+          gl.viewport(0, 0, rtWidth, rtHeight);
+          gl.activeTexture(gl.TEXTURE4);
+          gl.bindTexture(gl.TEXTURE_2D, blurTextureB);
+          if (blurUniforms.image) gl.uniform1i(blurUniforms.image, 4);
+          if (blurUniforms.texelSize)
+            gl.uniform2f(blurUniforms.texelSize, 1 / rtWidth, 1 / rtHeight);
+          if (blurUniforms.direction) gl.uniform2f(blurUniforms.direction, 1.0, 0.0);
+          if (blurUniforms.blurRadiusScale)
+            gl.uniform1f(blurUniforms.blurRadiusScale, blurSecondPassScale);
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, blurFboB);
-        gl.viewport(0, 0, rtWidth, rtHeight);
-        gl.activeTexture(gl.TEXTURE5);
-        gl.bindTexture(gl.TEXTURE_2D, blurTextureA);
-        if (blurUniforms.image) gl.uniform1i(blurUniforms.image, 5);
-        if (blurUniforms.direction) gl.uniform2f(blurUniforms.direction, 0.0, 1.0);
-        if (blurUniforms.blurRadiusScale)
-          gl.uniform1f(blurUniforms.blurRadiusScale, blurSecondPassScale);
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, blurFboB);
+          gl.viewport(0, 0, rtWidth, rtHeight);
+          gl.activeTexture(gl.TEXTURE5);
+          gl.bindTexture(gl.TEXTURE_2D, blurTextureA);
+          if (blurUniforms.image) gl.uniform1i(blurUniforms.image, 5);
+          if (blurUniforms.direction) gl.uniform2f(blurUniforms.direction, 0.0, 1.0);
+          if (blurUniforms.blurRadiusScale)
+            gl.uniform1f(blurUniforms.blurRadiusScale, blurSecondPassScale);
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+        }
 
         // Pass 6: glass composite to cached final frame
         gl.useProgram(glassProgram);
         gl.bindFramebuffer(gl.FRAMEBUFFER, finalFbo);
         gl.viewport(0, 0, rtWidth, rtHeight);
         gl.activeTexture(gl.TEXTURE6);
-        gl.bindTexture(gl.TEXTURE_2D, blurTextureB);
+        gl.bindTexture(gl.TEXTURE_2D, skipBlur ? combinedTexture : blurTextureB);
         if (glassUniforms.canvasPx)
           gl.uniform2f(glassUniforms.canvasPx, rtWidth, rtHeight);
         if (glassUniforms.padPx)
@@ -1871,7 +1878,8 @@ export function LivekitVideoWebGLCanvas({
         if (glassUniforms.ringInnerPx)
           gl.uniform1f(
             glassUniforms.ringInnerPx,
-            lerp(preset.loadingRingInnerPx, cl.loadingRingInnerPx, ringBlendT)
+            lerp(preset.loadingRingInnerPx, cl.loadingRingInnerPx, ringBlendT) *
+              dpr
           );
         if (glassUniforms.ringOuterStartPx)
           gl.uniform1f(
@@ -1880,7 +1888,7 @@ export function LivekitVideoWebGLCanvas({
               preset.loadingRingOuterStartPx,
               cl.loadingRingOuterStartPx,
               ringBlendT
-            )
+            ) * dpr
           );
         if (glassUniforms.ringOuterEndPx)
           gl.uniform1f(
@@ -1889,7 +1897,7 @@ export function LivekitVideoWebGLCanvas({
               preset.loadingRingOuterEndPx,
               cl.loadingRingOuterEndPx,
               ringBlendT
-            )
+            ) * dpr
           );
         if (glassUniforms.ringNoiseAmp)
           gl.uniform1f(

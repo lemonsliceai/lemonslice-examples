@@ -43,14 +43,8 @@ export type ImageEditCommandPayload = {
   source_image_url?: string;
 };
 
-export type ImageChangePhase =
-  | "idle"
-  | "sending"
-  | "editing"
-  | "accepted"
-  | "transitioning"
-  | "complete"
-  | "error";
+/** Only `editing` is UI-driving (Fal transition ring + panel busy). Everything else is the event log. */
+export type ImageChangePhase = "idle" | "editing";
 
 export type ImageChangeLogKind =
   | "tool_call"

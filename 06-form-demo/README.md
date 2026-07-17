@@ -68,8 +68,7 @@ cd frontend && npm install
 Install Python deps (managed by uv; `.venv` is gitignored):
 
 ```bash
-cd agent
-uv sync
+cd agent && uv sync && cd ..
 ```
 
 ## Run locally
