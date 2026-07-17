@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 import os
+from io import BytesIO
+from pathlib import Path
 
 import fal_client
 import httpx
 from livekit import rtc
 from livekit.rtc import DataPacket
+from PIL import Image
 
 logger = logging.getLogger("lemonslice")
 
@@ -23,6 +27,10 @@ LEMONSLICE_RPC_TOPIC = "lemonslice"
 
 DEFAULT_LEMONSLICE_AVATAR_IDENTITY = "lemonslice-avatar-agent"
 IMAGE_CHANGE_COMPLETE_TIMEOUT_S = 30.0
+
+# Match LemonSlice 2x3 portrait output (width x height).
+TARGET_IMAGE_WIDTH = 368
+TARGET_IMAGE_HEIGHT = 560
 
 
 class ImageChangeCompleteGate:
@@ -116,10 +124,61 @@ async def publish_agent_event(
         logger.exception("publish_agent_event failed (%s)", event_type)
 
 
-async def lemonslice_control_update_image(session_id: str, image_url: str) -> bool:
+def center_crop_resize(img: Image.Image, width: int, height: int) -> Image.Image:
+    """Center-crop and resize to target while preserving target aspect ratio."""
+    src_w, src_h = img.size
+    target_ratio = width / height
+    img_ratio = src_w / src_h
+    if img_ratio > target_ratio:
+        new_w = int(src_h * target_ratio)
+        left = (src_w - new_w) / 2
+        box = (left, 0, left + new_w, src_h)
+    else:
+        new_h = int(src_w / target_ratio)
+        top = (src_h - new_h) / 2
+        box = (0, top, src_w, top + new_h)
+    return img.crop(box).resize((width, height), Image.LANCZOS)
+
+
+def image_bytes_to_jpeg_base64(
+    image_bytes: bytes,
+    *,
+    width: int = TARGET_IMAGE_WIDTH,
+    height: int = TARGET_IMAGE_HEIGHT,
+    quality: int = 90,
+) -> str:
+    """Decode arbitrary image bytes, center-crop resize, return raw base64 JPEG."""
+    img = Image.open(BytesIO(image_bytes))
+    img = img.convert("RGB")
+    img = center_crop_resize(img, width, height)
+    buf = BytesIO()
+    img.save(buf, format="JPEG", quality=quality, optimize=True)
+    return base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+def load_local_image_base64(path: Path) -> str:
+    """Load a local image file and return center-crop-resized JPEG base64."""
+    return image_bytes_to_jpeg_base64(path.read_bytes())
+
+
+def decode_image_base64_field(raw: str) -> bytes:
+    """Accept raw base64 or a data URL; return decoded bytes."""
+    value = raw.strip()
+    if value.startswith("data:"):
+        _, _, value = value.partition(",")
+    return base64.b64decode(value, validate=True)
+
+
+async def lemonslice_control_update_image(
+    session_id: str,
+    *,
+    image_url: str | None = None,
+    image_base64: str | None = None,
+) -> bool:
     """
     POST /liveai/sessions/{session_id}/control with event=update-image.
 
+    Provide exactly one of ``image_url`` or ``image_base64``.
     See https://lemonslice.com/docs/api-reference/control-self-managed-session
     """
     api_key = os.getenv("LEMONSLICE_API_KEY")
@@ -127,10 +186,20 @@ async def lemonslice_control_update_image(session_id: str, image_url: str) -> bo
         logger.error("LEMONSLICE_API_KEY is not set")
         return False
 
-    image_url = image_url.strip()
-    if not image_url.startswith(("http://", "https://")):
-        logger.error("update-image needs a full http(s) URL")
+    if bool(image_url) == bool(image_base64):
+        logger.error("update-image needs exactly one of image_url or image_base64")
         return False
+
+    body: dict = {"event": "update-image"}
+    if image_url:
+        image_url = image_url.strip()
+        if not image_url.startswith(("http://", "https://")):
+            logger.error("update-image image_url needs a full http(s) URL")
+            return False
+        body["image_url"] = image_url
+    else:
+        assert image_base64 is not None
+        body["image_base64"] = image_base64.strip()
 
     url = lemonslice_session_control_url(session_id)
     async with httpx.AsyncClient() as client:
@@ -140,16 +209,15 @@ async def lemonslice_control_update_image(session_id: str, image_url: str) -> bo
                 "Content-Type": "application/json",
                 "X-API-Key": api_key,
             },
-            json={"event": "update-image", "image_url": image_url},
+            json=body,
             timeout=30.0,
         )
         if response.is_success:
             return True
         logger.error(
-            "LemonSlice update-image failed: %s %s (image_url=%s)",
+            "LemonSlice update-image failed: %s %s",
             response.status_code,
             response.text,
-            image_url,
         )
         return False
 
@@ -158,7 +226,8 @@ async def apply_image_and_notify(
     room: rtc.Room,
     *,
     lemonslice_session_id: str,
-    image_url: str,
+    image_url: str | None = None,
+    image_base64: str | None = None,
     image_change_gate: ImageChangeCompleteGate | None = None,
 ) -> int | None:
     """
@@ -170,17 +239,53 @@ async def apply_image_and_notify(
     generation: int | None = None
     if image_change_gate is not None:
         generation = image_change_gate.arm()
-    if not await lemonslice_control_update_image(lemonslice_session_id, image_url):
+    if not await lemonslice_control_update_image(
+        lemonslice_session_id,
+        image_url=image_url,
+        image_base64=image_base64,
+    ):
         return None
-    logger.info("LemonSlice image update accepted: %s", image_url[:80])
-    await publish_agent_event(room, "image_accepted", {"image_url": image_url})
+    if image_url:
+        logger.info("LemonSlice image update accepted: %s", image_url[:80])
+        await publish_agent_event(
+            room,
+            "image_accepted",
+            {"image_url": image_url, "message": image_url},
+        )
+    else:
+        nbytes = len(decode_image_base64_field(image_base64 or ""))
+        logger.info("LemonSlice image update accepted: %s inline bytes", nbytes)
+        await publish_agent_event(
+            room,
+            "image_accepted",
+            {"image_bytes": nbytes, "message": f"{nbytes} bytes (image_base64)"},
+        )
     return generation
 
 
-async def run_nano_banana_edit(*, prompt: str, source_image_url: str) -> str | None:
-    """Edit source_image_url with Fal Nano Banana 2 Lite. Returns new image URL or None."""
+async def run_nano_banana_edit(
+    *,
+    prompt: str,
+    source_image_url: str | None = None,
+    source_image_bytes: bytes | None = None,
+) -> str | None:
+    """
+    Edit a source image with Fal Nano Banana 2 Lite.
+
+    Provide ``source_image_url`` and/or ``source_image_bytes`` (bytes preferred).
+    Returns a new public image URL or None.
+    """
     if not (os.getenv("FAL_KEY") or "").strip():
         logger.error("FAL_KEY is not set")
+        return None
+
+    if source_image_bytes:
+        jpeg_b64 = image_bytes_to_jpeg_base64(source_image_bytes)
+        source = fal_client.encode(base64.b64decode(jpeg_b64), "image/jpeg")
+    elif source_image_url and source_image_url.startswith(("http://", "https://")):
+        source = source_image_url
+    else:
+        logger.error("Nano Banana edit needs source_image_url or source_image_bytes")
         return None
 
     fal_prompt = f"{prompt.strip()}\n\n{FAL_EDIT_PROMPT_APPEND}"
@@ -189,7 +294,7 @@ async def run_nano_banana_edit(*, prompt: str, source_image_url: str) -> str | N
             FAL_NANO_BANANA_EDIT_MODEL,
             arguments={
                 "prompt": fal_prompt,
-                "image_urls": [source_image_url],
+                "image_urls": [source],
                 "num_images": 1,
                 "aspect_ratio": "auto",
                 "output_format": "jpeg",

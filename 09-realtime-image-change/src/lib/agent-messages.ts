@@ -5,7 +5,7 @@ import type { LocalParticipant } from "livekit-client";
  * The agent listens on these and calls LemonSlice `update-image` itself.
  */
 
-/** Client → agent: apply a public image URL. */
+/** Client → agent: apply a public image URL or inline base64 image. */
 export const AGENT_SET_IMAGE_TOPIC = "agent/set_image";
 
 /** Client → agent: Fal Nano Banana 2 Lite edit, then apply. */
@@ -31,7 +31,9 @@ export const IMAGE_CHANGE_LOG_MAX = 40;
 
 export type SetImageCommandPayload = {
   type: "set_image";
-  image_url: string;
+  image_url?: string;
+  /** Raw base64 (or data URL). LemonSlice center-crops / resizes server-side. */
+  image_base64?: string;
 };
 
 export type ImageEditCommandPayload = {
@@ -51,6 +53,9 @@ export type ImageChangePhase =
   | "error";
 
 export type ImageChangeLogKind =
+  | "tool_call"
+  | "fal_edit_started"
+  | "fal_edit_complete"
   | "image_accepted"
   | "image_change_complete"
   | "image_change_error"

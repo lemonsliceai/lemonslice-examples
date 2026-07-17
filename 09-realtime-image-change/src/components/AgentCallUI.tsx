@@ -5,7 +5,7 @@
  *
  * 1. **Pre-join** — No token yet; “Start call” fetches `/api/token`.
  * 2. **Calling** — In room, waiting for avatar readiness via `@lemonsliceai/avatar` `LiveKitAvatarReadyWatcher`.
- * 3. **Active** — Bot pipeline ready; image panel can send URL / Nano Banana edits.
+ * 3. **Active** — Bot pipeline ready; image panel can send URL, upload, or Nano Banana edits.
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -47,6 +47,7 @@ import {
 const WIDGET_ASPECT_RATIO = 2 / 3;
 const TOPIC_CHAT = "lk.chat";
 const DEFAULT_PLACEHOLDER_VIDEO = "/welcome.mp4";
+const LEMONSLICE_AVATAR_IDENTITY = "lemonslice-avatar-agent";
 const BASE_IMAGE_URL =
   "https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/public/hero_agents/jess2/base.png";
 
@@ -167,25 +168,30 @@ function ActiveCallPanel({
     }, duration);
   }, []);
 
-  useEffect(() => {
-    const handler = (
-      segments: { text: string; final?: boolean }[],
-      participant: { identity: string } | undefined,
-    ) => {
-      if (!participant || participant.identity !== room.localParticipant.identity) return;
-      const text = segments.map((s) => s.text).join(" ").trim();
-      if (text) showToast(text);
-    };
-    room.on(RoomEvent.TranscriptionReceived, handler);
-    return () => {
-      room.off(RoomEvent.TranscriptionReceived, handler);
-      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    };
-  }, [room, showToast]);
+  // Temporarily hide in-call transcript toast
+  // useEffect(() => {
+  //   const handler = (
+  //     segments: { text: string; final?: boolean }[],
+  //     participant: { identity: string } | undefined,
+  //   ) => {
+  //     if (!participant || participant.identity !== room.localParticipant.identity) return;
+  //     const text = segments.map((s) => s.text).join(" ").trim();
+  //     if (text) showToast(text);
+  //   };
+  //   room.on(RoomEvent.TranscriptionReceived, handler);
+  //   return () => {
+  //     room.off(RoomEvent.TranscriptionReceived, handler);
+  //     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+  //   };
+  // }, [room, showToast]);
 
   useEffect(() => {
-    const onParticipantDisconnected = (_p: Participant) => {
-      if (room.remoteParticipants.size > 0) return;
+    const onParticipantDisconnected = (p: Participant) => {
+      // Agent worker and avatar are separate remotes — avatar leave must end the call
+      // even if the agent is still in the room.
+      if (p.identity !== LEMONSLICE_AVATAR_IDENTITY && room.remoteParticipants.size > 0) {
+        return;
+      }
       setAvatarJoined(false);
       room.disconnect().catch(() => {});
       onAvatarDisconnected();
@@ -239,6 +245,21 @@ function ActiveCallPanel({
 
       if (topic !== AGENT_EVENTS_TOPIC) return;
 
+      if (data.type === "tool_call") {
+        setImageState((s) =>
+          appendImageChangeLog(s, "tool_call", data.message),
+        );
+        return;
+      }
+
+      if (data.type === "fal_edit_started" || data.type === "fal_edit_complete") {
+        const kind = data.type;
+        setImageState((s) =>
+          appendImageChangeLog(s, kind, data.message ?? data.image_url),
+        );
+        return;
+      }
+
       if (data.type === "image_accepted") {
         if (editWatchdogRef.current) {
           clearTimeout(editWatchdogRef.current);
@@ -249,10 +270,12 @@ function ActiveCallPanel({
           appendImageChangeLog(
             {
               ...s,
-              phase: "transitioning",
+              // Keep Fal transition UI until image_change_complete / error.
+              phase: s.phase === "editing" ? "editing" : "idle",
               currentImageUrl: data.image_url ?? s.currentImageUrl,
             },
             "image_accepted",
+            data.message ?? data.image_url,
           ),
         );
         return;
@@ -319,6 +342,29 @@ function ActiveCallPanel({
     [room, setImageState, armImageChangeWatchdog, clearWatchdogs, showToast],
   );
 
+  const handleApplyUpload = useCallback(
+    async (imageBase64: string) => {
+      if (room.state !== ConnectionState.Connected) return;
+      clearWatchdogs();
+      setImageState((s) => ({ ...s, phase: "sending" }));
+      try {
+        await publishSetImageCommand(room.localParticipant, {
+          type: "set_image",
+          image_base64: imageBase64,
+        });
+        armImageChangeWatchdog();
+        setImageState((s) => ({ ...s, phase: "idle" }));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Failed to publish uploaded image";
+        showToast(msg);
+        setImageState((s) =>
+          appendImageChangeLog({ ...s, phase: "error" }, "image_update_failed", msg),
+        );
+      }
+    },
+    [room, setImageState, armImageChangeWatchdog, clearWatchdogs, showToast],
+  );
+
   const handleGenerateEdit = useCallback(
     async (prompt: string) => {
       if (room.state !== ConnectionState.Connected) return;
@@ -356,11 +402,8 @@ function ActiveCallPanel({
     [room, imageState.currentImageUrl, setImageState, clearWatchdogs, showToast],
   );
 
-  const transitioning =
-    imageState.phase === "accepted" ||
-    imageState.phase === "transitioning" ||
-    imageState.phase === "editing" ||
-    imageState.phase === "sending";
+  // Iridescent ring for Fal edit until LemonSlice image_change_complete / error.
+  const transitioning = imageState.phase === "editing";
 
   return (
     <div className="flex min-h-screen w-full flex-1 flex-col lg:h-screen lg:min-h-0 lg:flex-row lg:overflow-hidden">
@@ -421,6 +464,7 @@ function ActiveCallPanel({
           state={imageState}
           connected={avatarJoined}
           onApplyUrl={handleApplyUrl}
+          onApplyUpload={handleApplyUpload}
           onGenerateEdit={handleGenerateEdit}
           className="lg:h-full lg:min-h-0"
         />
@@ -531,6 +575,7 @@ export default function AgentCallUI({
             state={imageState}
             connected={false}
             onApplyUrl={() => {}}
+            onApplyUpload={() => {}}
             onGenerateEdit={() => {}}
             className="min-h-[50vh] lg:h-full lg:min-h-0"
           />
