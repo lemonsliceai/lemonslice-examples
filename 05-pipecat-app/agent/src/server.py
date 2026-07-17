@@ -33,8 +33,9 @@ from pipecat.transports.lemonslice.transport import (
 
 # Project root is two levels above this file: 05-pipecat-app/
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-load_dotenv(_REPO_ROOT / ".env")
+# .env.local first (higher priority), then .env defaults — same as Next.js
 load_dotenv(_REPO_ROOT / ".env.local")
+load_dotenv(_REPO_ROOT / ".env")
 
 app = FastAPI(title="LemonSlice Pipecat Session API")
 

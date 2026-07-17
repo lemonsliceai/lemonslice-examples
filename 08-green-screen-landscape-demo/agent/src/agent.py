@@ -18,8 +18,9 @@ from livekit.plugins import elevenlabs, groq, lemonslice, noise_cancellation
 
 # Repo root = parent of `agent/` (same `.env.local` as Next.js)
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-load_dotenv(_REPO_ROOT / ".env")
+# .env.local first (higher priority), then .env defaults — same as Next.js
 load_dotenv(_REPO_ROOT / ".env.local")
+load_dotenv(_REPO_ROOT / ".env")
 
 LIVEKIT_AGENT_NAME = os.getenv("LIVEKIT_AGENT_NAME", "").strip()
 AGENT_IMAGE_URL = os.getenv("AGENT_IMAGE_URL", "").strip()

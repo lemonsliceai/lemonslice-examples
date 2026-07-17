@@ -48,8 +48,8 @@ from lemonslice_control import (
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 _ASSETS_DIR = pathlib.Path(__file__).resolve().parents[1] / "assets"
-load_dotenv(_REPO_ROOT / ".env")
 load_dotenv(_REPO_ROOT / ".env.local")
+load_dotenv(_REPO_ROOT / ".env")
 
 logger = logging.getLogger("lemonslice")
 

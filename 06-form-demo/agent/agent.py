@@ -38,8 +38,8 @@ import demo_room
 
 # Repo root = parent of `agent/` (same `.env` as Next.js)
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
-load_dotenv(_REPO_ROOT / ".env")
 load_dotenv(_REPO_ROOT / ".env.local")
+load_dotenv(_REPO_ROOT / ".env")
 
 logger = logging.getLogger("form-demo")
 logging.basicConfig(level=logging.INFO)
