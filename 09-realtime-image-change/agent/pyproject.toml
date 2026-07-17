@@ -1,0 +1,14 @@
+[project]
+name = "lemonslice-realtime-image-change-agent"
+version = "0.1.0"
+description = "LiveKit Agents worker: Inference STT/LLM/TTS + LemonSlice avatar with realtime image updates"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "livekit-agents[lemonslice]~=1.4",
+    "livekit-plugins-noise-cancellation>=0.2",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.27.0",
+    "fal-client>=0.5.0",
+    "pillow>=12.3.0",
+]

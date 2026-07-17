@@ -39,6 +39,7 @@ npm install
 cd agent
 uv python install 3.12
 uv sync --python 3.12
+cd ..
 ```
 
 ## Run locally

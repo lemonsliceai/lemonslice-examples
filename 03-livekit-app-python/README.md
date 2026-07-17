@@ -29,13 +29,13 @@ Project layout:
   | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
   | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | Next token route, agent room connection, and **LiveKit Inference** (STT + LLM + TTS)               |
   | `AGENT_NAME`                                           | Worker registration / dispatch — include in `.env.local` (default `lemonslice` in `.env.example`). |
-  | `LEMONSLICE_API_KEY`                                   | Find this in your [LemonSlice account page](https://lemonslice.com/account).                       |
+  | `LEMONSLICE_API_KEY`                                   | Find this in your [Developer Portal](https://lemonslice.com/developers).                       |
 
   **Video ready** — Avatar video needs a few seconds to arrive after join. The UI uses [`@lemonsliceai/avatar`](https://www.npmjs.com/package/@lemonsliceai/avatar) [`LiveKitAvatarReadyWatcher`](https://www.npmjs.com/package/@lemonsliceai/avatar) to signal when the avatar is ready to be displayed.
 2. **Install** — install `[uv](https://docs.astral.sh/uv/getting-started/installation/)` first, then:
   ```bash
    npm install
-   cd agent && uv sync
+   cd agent && uv sync && cd ..
   ```
 
 ## Run locally
