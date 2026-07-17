@@ -5,6 +5,7 @@ import {
   cli,
   defineAgent,
   voice,
+  waitForParticipant,
 } from "@livekit/agents";
 import * as lemonslice from "@livekit/agents-plugin-lemonslice";
 import { BackgroundVoiceCancellation } from "@livekit/noise-cancellation-node";
@@ -104,6 +105,11 @@ export default defineAgent({
       },
     });
 
+    // Wait for the LemonSlice avatar (AGENT participant) before the first reply.
+    await waitForParticipant({
+      room: ctx.room,
+      identity: "lemonslice-avatar-agent",
+    });
     session.generateReply();
   },
 });

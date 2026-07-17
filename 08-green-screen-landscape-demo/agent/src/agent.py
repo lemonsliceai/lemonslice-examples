@@ -13,7 +13,7 @@ import pathlib
 from dotenv import load_dotenv
 
 from livekit import agents
-from livekit.agents import Agent, AgentServer, AgentSession, TurnHandlingOptions, inference, room_io
+from livekit.agents import Agent, AgentServer, AgentSession, TurnHandlingOptions, inference, room_io, utils
 from livekit.plugins import elevenlabs, groq, lemonslice, noise_cancellation
 
 # Repo root = parent of `agent/` (same `.env.local` as Next.js)
@@ -87,6 +87,8 @@ async def lemonslice_agent(ctx: agents.JobContext) -> None:
         ),
     )
 
+    # Wait for the LemonSlice avatar (AGENT participant) before the first reply.
+    await utils.wait_for_agent(ctx.room)
     await session.generate_reply()
 
 

@@ -12,7 +12,6 @@ dependencies = [
     "livekit-plugins-elevenlabs>=1.6.4",
     "livekit-plugins-lemonslice @ git+https://github.com/livekit/agents.git@main#subdirectory=livekit-plugins/livekit-plugins-lemonslice",
     "python-dotenv>=1.2.1",
-    "httpx>=0.27.0",
 ]
 
 [tool.uv]

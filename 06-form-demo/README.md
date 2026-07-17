@@ -30,20 +30,18 @@ The sidebar state and timing metrics move over LiveKit data topics.
 
 ## Prerequisites
 
-- Node.js 18+ (for `frontend`)
+- Node.js 18+ and [pnpm](https://pnpm.io/)
 - [uv](https://docs.astral.sh/uv/) (for `agent` Python env; installs a compatible Python if needed)
 - A LiveKit project (Cloud or self-hosted)
 - A LemonSlice API key (for avatar session)
 
 ## Environment
 
-Copy and edit env values:
+Copy and edit env values at the **repo root** (frontend and agent both read this file):
 
 ```bash
 cp .env.example .env
 ```
-
-The Next.js app loads the repo-root `.env` via `next.config.ts` so LiveKit secrets stay in one file.
 
 Required values:
 
@@ -54,42 +52,39 @@ Required values:
 
 Optional values:
 
+- `LIVEKIT_AGENT_NAME` (must match worker + token dispatch; default `form-demo`)
 - `AVATAR_IMAGE_URL` (override default portrait)
 - `NEXT_PUBLIC_TOKEN_URL` (only if the browser UI is on a different origin than the API; otherwise `/api/token` on the same host is used)
 
 ## Install
 
-Install JS deps:
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) first, then:
 
 ```bash
-cd frontend && npm install
-```
-
-Install Python deps (managed by uv; `.venv` is gitignored):
-
-```bash
+pnpm install
 cd agent && uv sync && cd ..
 ```
 
+(`pnpm install` also installs the `frontend` deps via `postinstall`.)
+
 ## Run locally
 
-Run two processes in separate terminals.
+**Default (simplest): one command**
 
-1) Voice agent
-
-```bash
-cd agent
-uv run python agent.py dev
-```
-
-2) Frontend (Next.js dev server — includes `GET /api/token`)
+Starts the Next.js app (UI + token API) and the agent worker together:
 
 ```bash
-cd frontend
-npm run dev
+pnpm run dev:all
 ```
 
-Open `http://localhost:3000`.
+Open [http://localhost:3000](http://localhost:3000).
+
+**Alternative: two terminals**
+
+| Terminal | Command | What it runs |
+| --- | --- | --- |
+| **A** | `pnpm run dev` | Web + `/api/token` (Next.js in `frontend/`) |
+| **B** | `pnpm run dev:agent` | Agent worker (`uv run python agent.py dev` in `agent/`) |
 
 ## Deploy
 

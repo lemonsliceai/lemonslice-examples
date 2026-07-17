@@ -12,9 +12,9 @@ from livekit.agents import (
     TurnHandlingOptions,
     cli,
     inference,
+    utils,
 )
 from livekit.plugins import elevenlabs, groq, lemonslice
-from utils import publish_room_message, wait_for_avatar_ready
 
 logger = logging.getLogger("zoom-avatar")
 logger.setLevel(logging.INFO)
@@ -60,7 +60,7 @@ async def entrypoint(ctx: JobContext):
     avatar = lemonslice.AvatarSession(
         agent_image_url=lemonslice_image_url,
     )
-    session_id = await avatar.start(session, room=ctx.room)
+    await avatar.start(session, room=ctx.room)
 
     await avatar.join_meeting(
         meeting_url,
@@ -79,17 +79,8 @@ async def entrypoint(ctx: JobContext):
         room_options=room_options,
     )
 
-    # Wait until the avatar has joined the room and is ready before sending first message
-    avatar_ready = await wait_for_avatar_ready(session_id)
-    if not avatar_ready:
-        logger.warning("Avatar failed to become active, exiting")
-        await publish_room_message(
-            ctx.room,
-            msg_type="startup_failure",
-            message="Avatar failed to become active",
-        )
-        return
-
+    # Wait for the LemonSlice avatar (AGENT participant) before the first reply.
+    await utils.wait_for_agent(ctx.room)
     session.generate_reply(instructions="Introduce yourself and offer to help.")
 
 

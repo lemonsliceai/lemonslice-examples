@@ -39,7 +39,6 @@ import {
   IMAGE_EDIT_TIMEOUT_MS,
   LEMONSLICE_RPC_TOPIC,
   appendImageChangeLog,
-  publishAvatarReady,
   publishImageEditCommand,
   publishSetImageCommand,
   type ImageChangeState,
@@ -93,17 +92,11 @@ function ActiveCallPanel({
   const { videoTrack } = useRemoteAgentVideo();
 
   const [avatarJoined, setAvatarJoined] = useState(false);
-  const greetedRef = useRef(false);
   const compactLayout = !avatarJoined;
 
   const handleAvatarReady = useCallback(() => {
     setAvatarJoined(true);
-    if (greetedRef.current) return;
-    greetedRef.current = true;
-    publishAvatarReady(room.localParticipant).catch((e) =>
-      console.error("Failed to publish avatar_ready:", e),
-    );
-  }, [room]);
+  }, []);
   const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

@@ -11,9 +11,6 @@ export const AGENT_SET_IMAGE_TOPIC = "agent/set_image";
 /** Client → agent: Fal Nano Banana 2 Lite edit, then apply. */
 export const AGENT_IMAGE_EDIT_TOPIC = "agent/image_edit";
 
-/** Client → agent: avatar video is ready; agent should greet. */
-export const AGENT_AVATAR_READY_TOPIC = "agent/avatar_ready";
-
 /** Agent → client notices (`image_accepted`, `image_update_failed`, …). */
 export const AGENT_EVENTS_TOPIC = "agent/events";
 
@@ -110,15 +107,4 @@ export async function publishImageEditCommand(
     reliable: true,
     topic: AGENT_IMAGE_EDIT_TOPIC,
   });
-}
-
-export async function publishAvatarReady(participant: LocalParticipant): Promise<void> {
-  const encoder = new TextEncoder();
-  await participant.publishData(
-    encoder.encode(JSON.stringify({ type: "avatar_ready" })),
-    {
-      reliable: true,
-      topic: AGENT_AVATAR_READY_TOPIC,
-    },
-  );
 }

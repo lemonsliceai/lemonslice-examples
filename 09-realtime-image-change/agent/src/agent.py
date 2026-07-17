@@ -28,12 +28,12 @@ from livekit.agents import (
     function_tool,
     inference,
     room_io,
+    utils,
 )
 from livekit.plugins import lemonslice, noise_cancellation
 from livekit.rtc import DataPacket
 
 from lemonslice_control import (
-    AGENT_AVATAR_READY_TOPIC,
     AGENT_IMAGE_EDIT_TOPIC,
     AGENT_SET_IMAGE_TOPIC,
     ImageChangeCompleteGate,
@@ -513,22 +513,6 @@ async def lemonslice_agent(ctx: agents.JobContext) -> None:
 
     await ctx.connect()
 
-    # Buffer client avatar_ready before avatar/session start — the packet can arrive
-    # as soon as the stream is ready and would otherwise be lost.
-    avatar_ready_event = asyncio.Event()
-
-    def on_avatar_ready(packet: DataPacket) -> None:
-        if packet.topic != AGENT_AVATAR_READY_TOPIC:
-            return
-        try:
-            data = json.loads(packet.data.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            return
-        if isinstance(data, dict) and data.get("type") == "avatar_ready":
-            avatar_ready_event.set()
-
-    ctx.room.on("data_received", on_avatar_ready)
-
     avatar = lemonslice.AvatarSession(
         agent_image_url=AGENT_IMAGE_URL,
     )
@@ -555,47 +539,16 @@ async def lemonslice_agent(ctx: agents.JobContext) -> None:
         ),
     )
 
-    # Allow update-image once the avatar participant is in the room (control needs ACTIVE).
-    # Frontend also gates UI on LiveKitAvatarReadyWatcher / bot_ready.
-    async def _mark_ready_when_avatar_joins() -> None:
-        identity = "lemonslice-avatar-agent"
-        for p in ctx.room.remote_participants.values():
-            if p.identity == identity:
-                # Brief settle so LemonSlice marks the session ACTIVE.
-                await asyncio.sleep(2.0)
-                state.image_ready.set()
-                logger.info("Image updates enabled (avatar present)")
-                return
+    # Wait for the LemonSlice avatar (AGENT participant) before updates / first reply.
+    await utils.wait_for_agent(ctx.room)
+    state.image_ready.set()
+    logger.info("Avatar joined; image updates enabled")
 
-        ready = asyncio.Event()
-
-        def on_connected(participant: rtc.RemoteParticipant) -> None:
-            if participant.identity == identity:
-                ready.set()
-
-        ctx.room.on("participant_connected", on_connected)
-        try:
-            await asyncio.wait_for(ready.wait(), timeout=60)
-            await asyncio.sleep(2.0)
-            state.image_ready.set()
-            logger.info("Image updates enabled (avatar joined)")
-        except asyncio.TimeoutError:
-            logger.warning("Avatar did not join; enabling image updates anyway")
-            state.image_ready.set()
-
-    state.spawn(_mark_ready_when_avatar_joins())
-
-    # Greet after session start once the (possibly early) avatar_ready arrives.
-    async def _greet_when_ready() -> None:
-        await avatar_ready_event.wait()
-        logger.info("Client avatar_ready; generating greeting")
-        await session.generate_reply(
-            instructions=(
-                "Greet the user briefly and let them know you can change apperance (suggest one of the tool call options)"
-            )
+    await session.generate_reply(
+        instructions=(
+            "Greet the user briefly and let them know you can change apperance (suggest one of the tool call options)"
         )
-
-    state.spawn(_greet_when_ready())
+    )
 
 
 if __name__ == "__main__":

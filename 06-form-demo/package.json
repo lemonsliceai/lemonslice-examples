@@ -1,0 +1,16 @@
+{
+  "name": "lemonslice-form-demo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --dir frontend dev",
+    "dev:agent": "cd agent && uv run python agent.py dev",
+    "dev:all": "concurrently -n web,agent -c green,cyan \"pnpm run dev\" \"pnpm run dev:agent\"",
+    "build": "pnpm --dir frontend build",
+    "build:agent": "cd agent && uv sync",
+    "postinstall": "pnpm --dir frontend install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
