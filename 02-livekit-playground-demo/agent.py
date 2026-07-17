@@ -1,9 +1,9 @@
 import logging
 from dotenv import load_dotenv
 from livekit import agents
-from livekit.agents import AgentServer, AgentSession, Agent, room_io
+from livekit.agents import AgentServer, AgentSession, Agent, room_io, utils
 from livekit.plugins import noise_cancellation, lemonslice
-from utils import publish_room_message, register_lemonslice_avatar_room_handlers, wait_for_avatar_ready
+from utils import register_lemonslice_avatar_room_handlers
 
 load_dotenv()
 logger = logging.getLogger("lemonslice")
@@ -12,10 +12,7 @@ logger = logging.getLogger("lemonslice")
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
-            instructions="""You are a helpful assistant.
-            You eagerly assist users with their questions by providing information from your extensive knowledge.
-            Your responses are concise, to the point, and without any complex formatting or punctuation including emojis, asterisks, or other symbols.
-            You are curious, friendly, and have a sense of humor.""",
+            instructions="""You are a helpful assistant. Your answers will be spoken out loud. Do not use emojis, markdown, or any formatting outside of normal punctuation.""",
         )
 
 
@@ -51,19 +48,9 @@ async def my_agent(ctx: agents.JobContext):
         ),
     )
 
-    # Wait until the avatar has joined the room and is ready
-    avatar_ready = await wait_for_avatar_ready(session_id)
-    if not avatar_ready:
-        logger.warning("Avatar failed to become active, exiting")
-        await publish_room_message(
-            ctx.room,
-            msg_type="startup_failure",
-            message="Avatar failed to become active",
-        )
-        return
-
-    await session.generate_reply(instructions="Greet the user and offer your assistance.")
-
+    # Wait for the LemonSlice avatar (AGENT participant) before the first reply.
+    await utils.wait_for_agent(ctx.room)
+    await session.generate_reply()
 
 if __name__ == "__main__":
     agents.cli.run_app(server)

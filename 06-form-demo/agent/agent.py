@@ -1,7 +1,7 @@
 """
 LemonSlice form-demo agent: voice + tools + sidebar state sync.
 
-Run:  cd agent && ../.venv/bin/python agent.py dev
+From repo root: `pnpm run dev:agent` or `pnpm run dev:all`.
 """
 
 from __future__ import annotations
@@ -10,9 +10,9 @@ import asyncio
 import json
 import logging
 import os
+import pathlib
 from typing import Any
 
-import httpx
 from dotenv import load_dotenv
 
 from livekit import agents, rtc
@@ -26,6 +26,7 @@ from livekit.agents import (
     function_tool,
     inference,
     room_io,
+    utils,
 )
 from livekit.agents.llm.chat_context import ChatMessage
 from livekit.agents.metrics import LLMMetrics, TTSMetrics
@@ -35,7 +36,11 @@ from livekit.plugins import lemonslice, silero
 
 import demo_room
 
-load_dotenv()
+# Repo root = parent of `agent/` (same `.env` as Next.js)
+_REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
+load_dotenv(_REPO_ROOT / ".env.local")
+load_dotenv(_REPO_ROOT / ".env")
+
 logger = logging.getLogger("form-demo")
 logging.basicConfig(level=logging.INFO)
 
@@ -183,32 +188,6 @@ def prewarm(proc: JobProcess) -> None:
 server.setup_fnc = prewarm
 
 
-async def _wait_avatar_ready(session_id: str, max_seconds: int = 300) -> bool:
-    key = os.getenv("LEMONSLICE_API_KEY")
-    if not key:
-        logger.warning("LEMONSLICE_API_KEY missing; skipping avatar readiness poll")
-        return True
-    async with httpx.AsyncClient() as client:
-        for _ in range(max_seconds):
-            try:
-                r = await client.get(
-                    f"https://lemonslice.com/api/liveai/sessions/{session_id}",
-                    headers={"X-API-Key": key},
-                    timeout=10.0,
-                )
-                r.raise_for_status()
-                data = r.json()
-                status = data.get("session_status", "")
-                if status == "ACTIVE":
-                    return True
-                if status in ("COMPLETED", "TIMED_OUT", "FAILED"):
-                    return False
-            except httpx.HTTPError as e:
-                logger.warning("avatar poll: %s", e)
-            await asyncio.sleep(1)
-    return False
-
-
 @server.rtc_session(agent_name=LIVEKIT_AGENT_NAME)
 async def entrypoint(ctx: JobContext) -> None:
     ctx.log_context_fields = {"room": ctx.room.name}
@@ -306,7 +285,7 @@ async def entrypoint(ctx: JobContext) -> None:
 
     ctx.room.on("data_received", _on_data_received)
 
-    session_id = await avatar.start(session, room=ctx.room)
+    await avatar.start(session, room=ctx.room)
 
     await session.start(
         room=ctx.room,
@@ -317,10 +296,8 @@ async def entrypoint(ctx: JobContext) -> None:
         ),
     )
 
-    ready = await _wait_avatar_ready(session_id)
-    if not ready:
-        logger.warning("Avatar did not become active in time")
-
+    # Wait for the LemonSlice avatar (AGENT participant) before the first reply.
+    await utils.wait_for_agent(ctx.room)
     await session.generate_reply(
         instructions=(
             "Greet briefly as Alex the AI SDR. Mention you're here to help them schedule a demo with Matt "

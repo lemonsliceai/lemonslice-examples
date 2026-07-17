@@ -5,6 +5,7 @@ import {
   cli,
   defineAgent,
   voice,
+  waitForParticipant,
 } from "@livekit/agents";
 import * as lemonslice from "@livekit/agents-plugin-lemonslice";
 import { BackgroundVoiceCancellation } from "@livekit/noise-cancellation-node";
@@ -14,8 +15,8 @@ import path from "node:path";
 
 // Repo root = parent of `agent/` (same `.env.local` as Next.js)
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-dotenv.config({ path: path.join(repoRoot, ".env") });
 dotenv.config({ path: path.join(repoRoot, ".env.local") });
+dotenv.config({ path: path.join(repoRoot, ".env") });
 
 /**
  * Reference image for the LemonSlice avatar. Must be a full HTTP(S) URL that is
@@ -104,6 +105,11 @@ export default defineAgent({
       },
     });
 
+    // Wait for the LemonSlice avatar (AGENT participant) before the first reply.
+    await waitForParticipant({
+      room: ctx.room,
+      identity: "lemonslice-avatar-agent",
+    });
     session.generateReply();
   },
 });

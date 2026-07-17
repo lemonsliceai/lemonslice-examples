@@ -22,7 +22,6 @@ logger = logging.getLogger("lemonslice")
 # App-specific LiveKit data topics (not LemonSlice product APIs).
 AGENT_SET_IMAGE_TOPIC = "agent/set_image"
 AGENT_IMAGE_EDIT_TOPIC = "agent/image_edit"
-AGENT_AVATAR_READY_TOPIC = "agent/avatar_ready"
 AGENT_EVENTS_TOPIC = "agent/events"
 LEMONSLICE_RPC_TOPIC = "lemonslice"
 

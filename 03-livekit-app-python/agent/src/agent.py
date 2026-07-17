@@ -13,13 +13,13 @@ import pathlib
 from dotenv import load_dotenv
 
 from livekit import agents
-from livekit.agents import Agent, AgentServer, AgentSession, TurnHandlingOptions, inference, room_io
+from livekit.agents import Agent, AgentServer, AgentSession, TurnHandlingOptions, inference, room_io, utils
 from livekit.plugins import lemonslice, noise_cancellation
 
 # Repo root = parent of `agent/` (same `.env.local` as Next.js)
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-load_dotenv(_REPO_ROOT / ".env")
 load_dotenv(_REPO_ROOT / ".env.local")
+load_dotenv(_REPO_ROOT / ".env")
 
 # Reference image for the LemonSlice avatar. Must be a full HTTP(S) URL that is
 # publicly reachable on the internet — LemonSlice's servers fetch it.
@@ -95,6 +95,8 @@ async def lemonslice_agent(ctx: agents.JobContext) -> None:
         ),
     )
 
+    # Wait for the LemonSlice avatar (AGENT participant) before the first reply.
+    await utils.wait_for_agent(ctx.room)
     await session.generate_reply()
 
 
