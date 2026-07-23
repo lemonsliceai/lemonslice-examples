@@ -6,7 +6,7 @@ The agent joins the meeting as a bot participant with your avatar on camera, lis
 
 ## Demo
 
-https://github.com/user-attachments/assets/80ac23f1-d2fb-48c8-9f75-296329040083
+https://github.com/user-attachments/assets/c5c36794-0ddf-4fe3-b812-9c6663ab2a49
 
 ## Prerequisites
 
