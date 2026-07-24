@@ -2,7 +2,7 @@
 
 Example app for LemonSlice **websocket** transport: audio in over a tunnel WebSocket, avatar A/V out over **Daily** or **LiveKit** (you choose on the landing page).
 
-https://github.com/user-attachments/assets/bff49c2e-1378-40be-9791-f23e85c149ab
+https://github.com/user-attachments/assets/5235b92e-1f19-4211-9cf7-292958974edc
 
 
 ## What this demonstrates
