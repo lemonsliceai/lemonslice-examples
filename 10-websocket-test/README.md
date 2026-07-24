@@ -2,6 +2,9 @@
 
 Example app for LemonSlice **websocket** transport: audio in over a tunnel WebSocket, avatar A/V out over **Daily** or **LiveKit** (you choose on the landing page).
 
+https://github.com/user-attachments/assets/bff49c2e-1378-40be-9791-f23e85c149ab
+
+
 ## What this demonstrates
 
 - Selecting Daily vs LiveKit egress on the landing page
