@@ -48,7 +48,7 @@ You can think of LemonSlice like a graphics layer or “face layer” that’s a
 | **Complexity** | Full code | Low code | No code |
 | **You control** | Speech, intelligence, call UI | Call UI | Nothing |
 | **LemonSlice controls** | Avatar | Speech, intelligence, avatar | Speech, intelligence, avatar, call UI |
-| **In this repo** | [03](./03-livekit-app-python/), [04](./04-livekit-app-nodejs/), [05](./05-pipecat-app/), [06](./06-form-demo/), [07](./07-livekit-zoom/), [08](./08-green-screen-landscape-demo/), [09](./09-realtime-image-change/) | [01-hosted-daily-app](./01-hosted-daily-app/) | — |
+| **In this repo** | [03](./03-livekit-app-python/), [04](./04-livekit-app-nodejs/), [05](./05-pipecat-app/), [06](./06-form-demo/), [07](./07-livekit-zoom/), [08](./08-green-screen-landscape-demo/), [09](./09-realtime-image-change/), [10](./10-websocket-test/) | [01-hosted-daily-app](./01-hosted-daily-app/) | — |
 
 1. **Pick a framework** — [LiveKit](./03-livekit-app-python/) or [Pipecat](./05-pipecat-app/) integration guide.
 2. **Build your UI** — run your own call lifecycle and frontend around the avatar session. See the [production checklist](https://lemonslice.com/docs/reference/production-checklist).
@@ -85,6 +85,7 @@ https://github.com/user-attachments/assets/0c889262-1021-4918-878d-722930ffda5f
 | **[07-livekit-zoom](./07-livekit-zoom/)** | Send an avatar into Zoom, Meet, Teams, or Webex via LiveKit Agents. |
 | **[08-green-screen-landscape-demo](./08-green-screen-landscape-demo/)** | Perform client-side green screen (chroma key) compositing to achieve a horizontal layout and animated background. |
 | **[09-realtime-image-change](./09-realtime-image-change/)** | Change your avatar's reference image during a call in real-time using the `update-image` event. |
+| **[10-websocket-test](./10-websocket-test/)** | WebSocket audio in + Daily or LiveKit A/V out; app creates the RTC room/tokens, then sends WAV / interrupt. |
 
 Each folder is self-contained with its own README and setup steps.
 
