@@ -21,7 +21,7 @@ https://github.com/user-attachments/assets/c5c36794-0ddf-4fe3-b812-9c6663ab2a49
 
 ## Install
 
-Requires [`livekit-agents[lemonslice]>=1.6.5`](https://lemonslice.com/docs/reference/zoom-meetings).
+Requires `livekit-agents[lemonslice]>=1.6.5`.
 
 ```bash
 cd 07-livekit-zoom
@@ -97,7 +97,7 @@ This example uses a agent stack optimized for fast response times:
 
 ## Additional resources
 
-- [Send your avatar to a Zoom call](https://lemonslice.com/docs/reference/zoom-meetings)
+- [Official LemonSlice guide](https://lemonslice.com/docs/reference/zoom-meetings)
 - [LiveKit Agents documentation](https://docs.livekit.io/agents/)
 - [LemonSlice LiveKit integration](https://lemonslice.com/docs/livekit)
 - [LiveKit agent dispatch](https://docs.livekit.io/agents/build/dispatch/)
