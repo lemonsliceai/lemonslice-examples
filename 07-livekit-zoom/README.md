@@ -21,14 +21,12 @@ https://github.com/user-attachments/assets/c5c36794-0ddf-4fe3-b812-9c6663ab2a49
 
 ## Install
 
-As of **2026-07-02**, external meeting support (`AvatarSession.join_meeting`) is merged on [livekit/agents](https://github.com/livekit/agents) `main` but not yet in a PyPI release. This example installs `livekit-plugins-lemonslice` from that branch; everything else installs from PyPI (see `pyproject.toml`).
+Requires [`livekit-agents[lemonslice]>=1.6.5`](https://lemonslice.com/docs/reference/zoom-meetings).
 
 ```bash
 cd 07-livekit-zoom
-GIT_LFS_SKIP_SMUDGE=1 uv sync
+uv sync
 ```
-
-The LiveKit agents repo uses Git LFS for example assets that aren't needed to install the Python packages. Skipping LFS smudge avoids a checkout error during `uv sync`.
 
 ## Setup
 
@@ -99,6 +97,7 @@ This example uses a agent stack optimized for fast response times:
 
 ## Additional resources
 
+- [Send your avatar to a Zoom call](https://lemonslice.com/docs/reference/zoom-meetings)
 - [LiveKit Agents documentation](https://docs.livekit.io/agents/)
-- [LemonSlice LiveKit integration](https://lemonslice.com/docs/api-reference/livekit-agent-integration)
+- [LemonSlice LiveKit integration](https://lemonslice.com/docs/livekit)
 - [LiveKit agent dispatch](https://docs.livekit.io/agents/build/dispatch/)
