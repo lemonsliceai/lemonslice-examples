@@ -19,12 +19,12 @@ export const CHROMA_KEY_HEX = "#50A954";
 /** WebGL chroma key tuning — see createChromaKeyRenderer.ts for parameter meanings. */
 export const CHROMA_KEY_OPTIONS = {
   keyColor: hexToKeyColor(CHROMA_KEY_HEX),
-  // #50A954 is lighter/desaturated — wider similarity catches more of the actual bg.
   similarity: 0.22,
-  smoothness: 0.06,
-  /** Pixels with g - max(r,b) above this start losing opacity (kills edge halos). */
+  /** Pixels with key-tint above this start spill desaturation (fraction of key magnitude). */
   spillMin: 0.025,
   spillMax: 0.085,
-  /** Post-process edge softening in canvas pixels (0 = off). */
-  edgeFeatherPx: 1,
+  /** Min-filter radius in source pixels — shrinks hard matte inward (0 = off). */
+  erodeRadius: 1,
+  /** Soft edge on eroded matte only — not RGB key feather. */
+  featherRadius: 1,
 };
