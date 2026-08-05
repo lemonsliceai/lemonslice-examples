@@ -73,21 +73,19 @@ All tuning lives in `src/lib/constants.ts`.
 
 ### Key matte (`CHROMA_KEY_OPTIONS`)
 
-These control how pixels are keyed out. See `src/lib/chroma-key/createChromaKeyRenderer.ts` for the shader logic.
+These control how pixels are keyed out. See `src/lib/chroma-key/createChromaKeyRenderer.ts` for the shader logic. The renderer uses a two-pass matte (erode to an intermediate texture, then feather).
 
 | Parameter | Typical range | Effect |
 | --------- | ------------- | ------ |
 | `similarity` | 0.05–0.40 | Hard RGB-distance cut vs `CHROMA_KEY_HEX`. **Higher** = more aggressive (keys more background, but can eat into the subject). |
-| `spillMin` | 0.02–0.70 | Key-tint projection (vs neutral gray) where spill desaturation starts, as a fraction of key magnitude. |
-| `spillMax` | 0.08–1.0 | Key-tint projection where spill desaturation is fully applied. |
 | `erodeRadius` | 0–6 | Min-filter radius in **source pixels** that shrinks the hard matte inward. Cuts green halos at the silhouette (`0` = off). |
 | `featherRadius` | 0–2 | Box-blur radius on the **eroded matte** (not the RGB key). Softens jagged edges (`1` ≈ 3×3). |
 
 **Background speckles** — raise `similarity` slightly, or increase `erodeRadius`.
 
-**Subject clipping / thin edges** — lower `similarity`, or lower `erodeRadius`.
+**Subject clipping** — lower `similarity`, or lower `erodeRadius`.
 
-**Green fringing on edges** — raise `erodeRadius`, or adjust `spillMin` / `spillMax`.
+**Green fringing on edges** — raise `erodeRadius`.
 
 **Jagged edges** — try `featherRadius: 1` or `2`.
 

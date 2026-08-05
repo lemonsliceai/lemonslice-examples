@@ -2,18 +2,14 @@ export type ChromaKeyOptions = {
   keyColor: [number, number, number];
   /** RGB distance threshold — closer than this is background (hard cut). */
   similarity: number;
-  /**
-   * Spill suppression start as a fraction of key-color magnitude from neutral gray.
-   * Higher = only strong key-tint is desaturated.
-   */
-  spillMin: number;
-  /** Spill suppression full strength as a fraction of key-color magnitude. */
-  spillMax: number;
   /** Min-filter radius in source pixels — shrinks hard matte inward (shader capped at 6). */
   erodeRadius: number;
   /** Box-blur radius on eroded mask — softens jagged edge (1 ≈ 3×3; shader capped at 2). */
   featherRadius: number;
 };
+
+const MAX_ERODE_RADIUS = 6;
+const MAX_FEATHER_RADIUS = 2;
 
 const VERTEX_SHADER = `
 attribute vec2 a_position;
@@ -25,16 +21,31 @@ void main() {
 }
 `;
 
-const FRAGMENT_SHADER = `
+/**
+ * Two-pass matte: erode → intermediate R channel, then feather that mask.
+ * Radii are baked as loop bounds so GLSL ES 1.00 never branches on uniforms.
+ */
+function buildErodeFragmentShader(erodeRadius: number): string {
+  const r = erodeRadius;
+  const erodeBody =
+    r < 1
+      ? `return sampleMask(uv);`
+      : `
+  float m = 1.0;
+  for (float y = -${r}.0; y <= ${r}.0; y += 1.0) {
+    for (float x = -${r}.0; x <= ${r}.0; x += 1.0) {
+      vec2 o = vec2(x * u_texelSize.x, y * u_texelSize.y);
+      m = min(m, sampleMask(uv + o));
+    }
+  }
+  return m;`;
+
+  return `
 precision mediump float;
 varying vec2 v_texCoord;
 uniform sampler2D u_texture;
 uniform vec3 u_keyColor;
 uniform float u_similarity;
-uniform float u_spillMin;
-uniform float u_spillMax;
-uniform float u_erodeRadius;
-uniform float u_featherRadius;
 uniform vec2 u_texelSize;
 
 float sampleMask(vec2 uv) {
@@ -42,71 +53,52 @@ float sampleMask(vec2 uv) {
   return step(u_similarity, distance(c, u_keyColor));
 }
 
-float erodeAt(vec2 uv, float r) {
-  if (r < 1.0) {
-    return sampleMask(uv);
-  }
-
-  float m = 1.0;
-  for (float y = -6.0; y <= 6.0; y += 1.0) {
-    if (abs(y) > r) continue;
-    for (float x = -6.0; x <= 6.0; x += 1.0) {
-      if (abs(x) > r) continue;
-      vec2 o = vec2(x * u_texelSize.x, y * u_texelSize.y);
-      m = min(m, sampleMask(uv + o));
-    }
-  }
-  return m;
+float erodeAt(vec2 uv) {
+  ${erodeBody}
 }
 
-float matteAlpha(vec2 uv) {
-  float rE = floor(u_erodeRadius + 0.5);
-  float rF = floor(u_featherRadius + 0.5);
+void main() {
+  float mask = erodeAt(v_texCoord);
+  gl_FragColor = vec4(mask, 0.0, 0.0, 1.0);
+}
+`;
+}
 
-  if (rF < 1.0) {
-    return erodeAt(uv, rE);
-  }
-
-  // Feather the eroded mask (not the RGB key) — soft edge without a key-color halo band.
+function buildCompositeFragmentShader(featherRadius: number): string {
+  const r = featherRadius;
+  const featherBody =
+    r < 1
+      ? `return texture2D(u_mask, uv).r;`
+      : `
   float sum = 0.0;
   float count = 0.0;
-  for (float y = -2.0; y <= 2.0; y += 1.0) {
-    if (abs(y) > rF) continue;
-    for (float x = -2.0; x <= 2.0; x += 1.0) {
-      if (abs(x) > rF) continue;
+  for (float y = -${r}.0; y <= ${r}.0; y += 1.0) {
+    for (float x = -${r}.0; x <= ${r}.0; x += 1.0) {
       vec2 o = vec2(x * u_texelSize.x, y * u_texelSize.y);
-      sum += erodeAt(uv + o, rE);
+      sum += texture2D(u_mask, uv + o).r;
       count += 1.0;
     }
   }
-  return sum / count;
+  return sum / count;`;
+
+  return `
+precision mediump float;
+varying vec2 v_texCoord;
+uniform sampler2D u_texture;
+uniform sampler2D u_mask;
+uniform vec2 u_texelSize;
+
+float featheredMask(vec2 uv) {
+  ${featherBody}
 }
 
 void main() {
   vec3 rgb = texture2D(u_texture, v_texCoord).rgb;
-  float alpha = matteAlpha(v_texCoord);
-
-  vec3 neutral = vec3(0.3333333);
-  vec3 keyDir = u_keyColor - neutral;
-  float keyMag = length(keyDir);
-  if (keyMag > 0.001) {
-    keyDir /= keyMag;
-  } else {
-    keyDir = vec3(0.0, 1.0, 0.0);
-  }
-
-  float pixProj = dot(rgb - neutral, keyDir);
-  float spill = max(0.0, pixProj - u_spillMin * keyMag);
-  spill = min(spill, max(0.0, (u_spillMax - u_spillMin) * keyMag));
-
-  if (alpha > 0.5) {
-    rgb -= keyDir * spill * 0.35;
-    rgb = clamp(rgb, 0.0, 1.0);
-  }
-
+  float alpha = featheredMask(v_texCoord);
   gl_FragColor = vec4(rgb * alpha, alpha);
 }
 `;
+}
 
 function compileShader(gl: WebGLRenderingContext, type: number, source: string) {
   const shader = gl.createShader(type);
@@ -139,7 +131,24 @@ function createProgram(gl: WebGLRenderingContext, vs: string, fs: string) {
   return program;
 }
 
+function createTexture(gl: WebGLRenderingContext) {
+  const texture = gl.createTexture();
+  if (!texture) throw new Error("Failed to create texture");
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  return texture;
+}
+
+/** Display pass: flips Y so the top-down video texture draws upright on the canvas. */
 const DEFAULT_TEX_COORDS = new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]);
+/**
+ * Offscreen pass: no flip, so the mask texture is stored in the same orientation
+ * as the uploaded video frame and both can be sampled with the same coordinates.
+ */
+const FBO_TEX_COORDS = new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]);
 
 export type ChromaKeyRenderer = {
   render: (video: HTMLVideoElement) => void;
@@ -158,31 +167,46 @@ export function createChromaKeyRenderer(
   });
   if (!gl) throw new Error("WebGL not supported");
 
-  const program = createProgram(gl, VERTEX_SHADER, FRAGMENT_SHADER);
-  gl.useProgram(program);
+  const erodeRadius = Math.min(
+    MAX_ERODE_RADIUS,
+    Math.max(0, Math.round(options.erodeRadius)),
+  );
+  const featherRadius = Math.min(
+    MAX_FEATHER_RADIUS,
+    Math.max(0, Math.round(options.featherRadius)),
+  );
+
+  const erodeProgram = createProgram(
+    gl,
+    VERTEX_SHADER,
+    buildErodeFragmentShader(erodeRadius),
+  );
+  const compositeProgram = createProgram(
+    gl,
+    VERTEX_SHADER,
+    buildCompositeFragmentShader(featherRadius),
+  );
 
   const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
 
   const posBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
-  const posLoc = gl.getAttribLocation(program, "a_position");
-  gl.enableVertexAttribArray(posLoc);
-  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
   const texBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, DEFAULT_TEX_COORDS, gl.STATIC_DRAW);
-  const texLoc = gl.getAttribLocation(program, "a_texCoord");
-  gl.enableVertexAttribArray(texLoc);
-  gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 0, 0);
 
-  const texture = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  const fboTexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, fboTexBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, FBO_TEX_COORDS, gl.STATIC_DRAW);
+
+  const erodePosLoc = gl.getAttribLocation(erodeProgram, "a_position");
+  const erodeTexLoc = gl.getAttribLocation(erodeProgram, "a_texCoord");
+  const compositePosLoc = gl.getAttribLocation(compositeProgram, "a_position");
+  const compositeTexLoc = gl.getAttribLocation(compositeProgram, "a_texCoord");
+
+  const videoTexture = createTexture(gl);
   gl.texImage2D(
     gl.TEXTURE_2D,
     0,
@@ -195,22 +219,90 @@ export function createChromaKeyRenderer(
     new Uint8Array([0, 0, 0, 0]),
   );
 
-  const uTexture = gl.getUniformLocation(program, "u_texture");
-  const uKeyColor = gl.getUniformLocation(program, "u_keyColor");
-  const uSimilarity = gl.getUniformLocation(program, "u_similarity");
-  const uSpillMin = gl.getUniformLocation(program, "u_spillMin");
-  const uSpillMax = gl.getUniformLocation(program, "u_spillMax");
-  const uErodeRadius = gl.getUniformLocation(program, "u_erodeRadius");
-  const uFeatherRadius = gl.getUniformLocation(program, "u_featherRadius");
-  const uTexelSize = gl.getUniformLocation(program, "u_texelSize");
+  const maskTexture = createTexture(gl);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    1,
+    1,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    new Uint8Array([0, 0, 0, 0]),
+  );
 
-  gl.uniform1i(uTexture, 0);
-  gl.uniform3fv(uKeyColor, options.keyColor);
-  gl.uniform1f(uSimilarity, options.similarity);
-  gl.uniform1f(uSpillMin, options.spillMin);
-  gl.uniform1f(uSpillMax, options.spillMax);
-  gl.uniform1f(uErodeRadius, options.erodeRadius);
-  gl.uniform1f(uFeatherRadius, options.featherRadius);
+  const maskFramebuffer = gl.createFramebuffer();
+  if (!maskFramebuffer) throw new Error("Failed to create framebuffer");
+  gl.bindFramebuffer(gl.FRAMEBUFFER, maskFramebuffer);
+  gl.framebufferTexture2D(
+    gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT0,
+    gl.TEXTURE_2D,
+    maskTexture,
+    0,
+  );
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+  const uErodeTexture = gl.getUniformLocation(erodeProgram, "u_texture");
+  const uErodeKeyColor = gl.getUniformLocation(erodeProgram, "u_keyColor");
+  const uErodeSimilarity = gl.getUniformLocation(erodeProgram, "u_similarity");
+  const uErodeTexelSize = gl.getUniformLocation(erodeProgram, "u_texelSize");
+
+  const uCompositeTexture = gl.getUniformLocation(compositeProgram, "u_texture");
+  const uCompositeMask = gl.getUniformLocation(compositeProgram, "u_mask");
+  const uCompositeTexelSize = gl.getUniformLocation(compositeProgram, "u_texelSize");
+
+  gl.useProgram(erodeProgram);
+  gl.uniform1i(uErodeTexture, 0);
+  gl.uniform3fv(uErodeKeyColor, options.keyColor);
+  gl.uniform1f(uErodeSimilarity, options.similarity);
+
+  gl.useProgram(compositeProgram);
+  gl.uniform1i(uCompositeTexture, 0);
+  gl.uniform1i(uCompositeMask, 1);
+
+  let maskWidth = 0;
+  let maskHeight = 0;
+
+  const ensureMaskSize = (width: number, height: number) => {
+    if (maskWidth === width && maskHeight === height) return;
+    maskWidth = width;
+    maskHeight = height;
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, maskTexture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      width,
+      height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    );
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, maskFramebuffer);
+    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    if (status !== gl.FRAMEBUFFER_COMPLETE) {
+      throw new Error(`Mask framebuffer incomplete: 0x${status.toString(16)}`);
+    }
+  };
+
+  const bindQuad = (
+    posLoc: number,
+    texLoc: number,
+    coordBuffer: WebGLBuffer | null,
+  ) => {
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+    gl.enableVertexAttribArray(posLoc);
+    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, coordBuffer);
+    gl.enableVertexAttribArray(texLoc);
+    gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 0, 0);
+  };
 
   const resize = (width: number, height: number) => {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -230,26 +322,55 @@ export function createChromaKeyRenderer(
     if (video.readyState < video.HAVE_CURRENT_DATA) return;
     if (video.videoWidth === 0 || video.videoHeight === 0) return;
 
-    gl.useProgram(program);
-    gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
-    gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 0, 0);
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    const texelW = 1 / vw;
+    const texelH = 1 / vh;
+
+    ensureMaskSize(vw, vh);
 
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.bindTexture(gl.TEXTURE_2D, videoTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
-    gl.uniform2f(uTexelSize, 1 / video.videoWidth, 1 / video.videoHeight);
+    // The mask is the render target below, so it must not stay bound to a unit.
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+    // Pass 1: hard key + erode → mask texture (source-pixel space, unflipped).
+    gl.bindFramebuffer(gl.FRAMEBUFFER, maskFramebuffer);
+    gl.viewport(0, 0, vw, vh);
+    gl.useProgram(erodeProgram);
+    bindQuad(erodePosLoc, erodeTexLoc, fboTexBuffer);
+    gl.uniform2f(uErodeTexelSize, texelW, texelH);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // Pass 2: feather eroded mask and composite to canvas.
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.useProgram(compositeProgram);
+    bindQuad(compositePosLoc, compositeTexLoc, texBuffer);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, videoTexture);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, maskTexture);
+    gl.uniform2f(uCompositeTexelSize, texelW, texelH);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   };
 
   const destroy = () => {
-    gl.deleteTexture(texture);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.deleteFramebuffer(maskFramebuffer);
+    gl.deleteTexture(videoTexture);
+    gl.deleteTexture(maskTexture);
     gl.deleteBuffer(posBuffer);
     gl.deleteBuffer(texBuffer);
-    gl.deleteProgram(program);
+    gl.deleteBuffer(fboTexBuffer);
+    gl.deleteProgram(erodeProgram);
+    gl.deleteProgram(compositeProgram);
   };
 
   return { render, resize, destroy };

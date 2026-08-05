@@ -20,11 +20,6 @@ export const CHROMA_KEY_HEX = "#50A954";
 export const CHROMA_KEY_OPTIONS = {
   keyColor: hexToKeyColor(CHROMA_KEY_HEX),
   similarity: 0.22,
-  /** Pixels with key-tint above this start spill desaturation (fraction of key magnitude). */
-  spillMin: 0.025,
-  spillMax: 0.085,
-  /** Min-filter radius in source pixels — shrinks hard matte inward (0 = off). */
-  erodeRadius: 1,
-  /** Soft edge on eroded matte only — not RGB key feather. */
-  featherRadius: 1,
+  erodeRadius: 1,  // Shrinks hard matte inward (0 = off)
+  featherRadius: 1,  // Soft edge on eroded matte
 };
