@@ -264,11 +264,16 @@ export function createChromaKeyRenderer(
 
   let maskWidth = 0;
   let maskHeight = 0;
+  let warnedIncomplete = false;
 
+  /**
+   * Returns false when the mask target could not be allocated (e.g. a frame
+   * larger than MAX_TEXTURE_SIZE, or a lost context). Callers skip the frame
+   * rather than throwing, so the render loop can recover on a later frame.
+   */
   const ensureMaskSize = (width: number, height: number) => {
-    if (maskWidth === width && maskHeight === height) return;
-    maskWidth = width;
-    maskHeight = height;
+    if (maskWidth === width && maskHeight === height) return true;
+
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, maskTexture);
     gl.texImage2D(
@@ -287,8 +292,19 @@ export function createChromaKeyRenderer(
     const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     if (status !== gl.FRAMEBUFFER_COMPLETE) {
-      throw new Error(`Mask framebuffer incomplete: 0x${status.toString(16)}`);
+      if (!warnedIncomplete) {
+        warnedIncomplete = true;
+        console.error(
+          `Chroma key: mask framebuffer incomplete at ${width}x${height} (0x${status.toString(16)}); skipping frames.`,
+        );
+      }
+      return false;
     }
+
+    maskWidth = width;
+    maskHeight = height;
+    warnedIncomplete = false;
+    return true;
   };
 
   const bindQuad = (
@@ -327,7 +343,7 @@ export function createChromaKeyRenderer(
     const texelW = 1 / vw;
     const texelH = 1 / vh;
 
-    ensureMaskSize(vw, vh);
+    if (!ensureMaskSize(vw, vh)) return;
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, videoTexture);
