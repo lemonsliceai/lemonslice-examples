@@ -73,21 +73,21 @@ All tuning lives in `src/lib/constants.ts`.
 
 ### Key matte (`CHROMA_KEY_OPTIONS`)
 
-These control how pixels are keyed out. See `src/lib/chroma-key/createChromaKeyRenderer.ts` for the shader logic.
+These control how pixels are keyed out. See `src/lib/chroma-key/createChromaKeyRenderer.ts` for the shader logic. The renderer uses a two-pass matte (erode to an intermediate texture, then feather).
 
 | Parameter | Typical range | Effect |
 | --------- | ------------- | ------ |
-| `similarity` | 0.05–0.20 | How close a pixel's RGB must be to `CHROMA_KEY_HEX` to count as background. **Higher** = more aggressive (keys more green, but can eat into the subject). |
-| `smoothness` | 0.04–0.12 | Width of the transition between keyed and opaque. **Lower** = harder edge. |
-| `spillMin` | 0.02–0.08 | Green-excess (`g - max(r,b)`) above which spill removal starts. **Lower** = catches faint green fringing on light hair/skin sooner. |
-| `spillMax` | 0.08–0.15 | Green-excess at which spill is fully keyed out. **Lower** = tighter spill removal. |
-| `edgeFeatherPx` | 0–3 | Post-process alpha softening at the silhouette edge (0 = off). Does **not** change the key matte — only blurs alpha after the fact. RGB stays sharp. |
+| `similarity` | 0.05–0.40 | Hard RGB-distance cut vs `CHROMA_KEY_HEX`. **Higher** = more aggressive (keys more background, but can eat into the subject). |
+| `erodeRadius` | 0–6 | Min-filter radius in **source pixels** that shrinks the hard matte inward. Cuts green halos at the silhouette (`0` = off). |
+| `featherRadius` | 0–2 | Box-blur radius on the **eroded matte** (not the RGB key). Softens jagged edges (`1` ≈ 3×3). |
 
-**Green fringing on edges** — raise `similarity` slightly, or lower `spillMin` / `spillMax`.
+**Background speckles** — raise `similarity` slightly, or increase `erodeRadius`.
 
-**Subject clipping** — lower `similarity`, or raise `spillMin`.
+**Subject clipping** — lower `similarity`, or lower `erodeRadius`.
 
-**Jagged edges** — try `edgeFeatherPx: 1` or `2`.
+**Green fringing on edges** — raise `erodeRadius`.
+
+**Jagged edges** — try `featherRadius: 1` or `2`.
 
 Set the reference image via `AGENT_IMAGE_URL` in `.env.local` (agent worker only). The pre-call and ringing UI loop `public/placeholder.mp4`.
 
