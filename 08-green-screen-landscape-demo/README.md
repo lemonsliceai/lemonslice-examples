@@ -10,7 +10,7 @@ The LemonSlice avatar is generated at a 2:3 (vertical) aspect ratio, and inserte
 https://github.com/user-attachments/assets/aef009dd-9e55-4b46-93f4-36ab975ef191
 
 
-Project layout:
+## Project layout
 
 | Path                                         | What                             |
 | -------------------------------------------- | -------------------------------- |
@@ -114,3 +114,11 @@ avatar = lemonslice.AvatarSession(
 ```typescript
 export const AVATAR_ASPECT_RATIO = 1; // 2 / 3 for "2x3"
 ```
+
+## No-code green screen editor
+
+To simplify the process of tuning your green screen pipeline, you can experiment with different configuration settings and backgrounds using the built-in editor at lemonslice.com — no coding required.
+
+Watch the tutorial below:
+
+[![LemonSlice green screen editor walkthrough](https://cdn.loom.com/sessions/thumbnails/0f95e97b72624e0490353ddb9ab0dda1-58e721cd30d28353-full-play.gif)](https://www.loom.com/share/0f95e97b72624e0490353ddb9ab0dda1)
