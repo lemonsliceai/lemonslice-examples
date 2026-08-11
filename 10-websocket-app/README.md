@@ -4,7 +4,7 @@ Build with the **LemonSlice WebSocket integration**: drive a LemonSlice avatar f
 
 The WebSocket carries **only audio and control events**. Avatar video is published into a LiveKit room that you own; your app joins that room as a viewer.
 
-https://github.com/user-attachments/assets/394224a6-59d3-42b4-8c99-c67816dbd24e
+https://github.com/user-attachments/assets/3f52112b-9d2f-4544-a068-90ea3bfbf423
 
 ## How the integration works
 
