@@ -1,6 +1,6 @@
 # pipecat-app
 
-End-to-end example showing LemonSlice self-managed Pipecat integration with a Next.js frontend that joins the Daily room.
+End-to-end example showing how to use the LemonSlice API with Pipecat, plus a Next.js frontend that joins the Daily room.
 
 This keeps the same UI pattern used in `03-livekit-app-python` and `04-livekit-app-nodejs` (pre-join, ringing, in-call controls), but swaps LiveKit for Daily + Pipecat transport.
 
