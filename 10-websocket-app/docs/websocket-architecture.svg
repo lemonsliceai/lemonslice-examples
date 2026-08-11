@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="8 24 936 392" width="936" height="392" role="img" aria-labelledby="diagram-title diagram-desc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <title id="diagram-title">LemonSlice WebSocket integration architecture</title>
+  <desc id="diagram-desc">The browser captures microphone audio as 16 kHz PCM16 and sends it to a FastAPI bridge. The bridge forwards it to an ElevenLabs agent, then streams the agent's audio to LemonSlice over a WebSocket as audio, audio_end and interrupt commands, receiving playback_finished back. LemonSlice renders the avatar and publishes its audio and video into your LiveKit room, which the browser joins as a subscribe-only viewer. The bridge also pushes JSON events to the call UI.</desc>
+
+  <rect x="0" y="0" width="960" height="430" fill="#ffffff" />
+
+  <g fill="none" stroke="#d4d4d8" stroke-width="1.25" stroke-dasharray="6 4">
+    <rect x="24" y="40" width="176" height="360" rx="14" />
+    <rect x="290" y="40" width="330" height="245" rx="14" />
+  </g>
+
+  <g font-size="12" font-weight="600" fill="#71717a">
+    <text x="40" y="62">Browser</text>
+    <text x="306" y="62">FastAPI bridge (:3001)</text>
+  </g>
+
+  <g stroke-width="1.25">
+    <g fill="#eff6ff" stroke="#bfdbfe">
+      <rect x="44" y="84" width="136" height="66" rx="10" />
+      <rect x="44" y="198" width="136" height="66" rx="10" />
+      <rect x="44" y="320" width="136" height="66" rx="10" />
+    </g>
+    <g fill="#f8fafc" stroke="#cbd5e1">
+      <rect x="310" y="84" width="290" height="66" rx="10" />
+      <rect x="310" y="194" width="290" height="66" rx="10" />
+    </g>
+    <rect x="738" y="183" width="190" height="88" rx="10" fill="#fef9c3" stroke="#fde68a" />
+    <rect x="738" y="320" width="190" height="66" rx="10" fill="#ecfeff" stroke="#a5f3fc" />
+  </g>
+
+  <g text-anchor="middle" font-size="13" font-weight="600" fill="#1f2937">
+    <text x="112" y="113">Mic capture</text>
+    <text x="112" y="227">Call UI</text>
+    <text x="112" y="349">LiveKit viewer</text>
+    <text x="455" y="113">ElevenLabs agent (WS)</text>
+    <text x="455" y="223">LemonSlice tunnel (WS)</text>
+    <text x="833" y="213">LemonSlice</text>
+    <text x="833" y="349">LiveKit room</text>
+  </g>
+
+  <g text-anchor="middle" font-size="10.5" fill="#6b7280">
+    <text x="112" y="131">AudioWorklet</text>
+    <text x="112" y="245">transcripts &#183; state</text>
+    <text x="112" y="367">subscribe-only</text>
+    <text x="455" y="131">STT &#183; LLM &#183; TTS</text>
+    <text x="455" y="241">one client per session</text>
+    <text x="833" y="232">renders the avatar and</text>
+    <text x="833" y="247">publishes it to your room</text>
+    <text x="833" y="367">your project</text>
+  </g>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#64748b" />
+    </marker>
+  </defs>
+
+  <g stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#arrow)">
+    <line x1="180" y1="117" x2="310" y2="117" />
+    <line x1="455" y1="150" x2="455" y2="194" />
+    <line x1="620" y1="213" x2="738" y2="213" />
+    <line x1="738" y1="241" x2="620" y2="241" />
+    <line x1="833" y1="271" x2="833" y2="320" />
+    <line x1="738" y1="353" x2="180" y2="353" />
+    <line x1="290" y1="231" x2="180" y2="231" />
+  </g>
+
+  <g font-size="10" fill="#52525b">
+    <text x="245" y="109" text-anchor="middle">PCM16 &#183; 16 kHz</text>
+    <text x="235" y="223" text-anchor="middle">JSON events</text>
+    <text x="467" y="166">agent audio &#183; interrupt</text>
+    <text x="821" y="291" text-anchor="end">avatar audio</text>
+    <text x="821" y="305" text-anchor="end">+ video</text>
+    <text x="459" y="345" text-anchor="middle" font-size="11">avatar audio + video</text>
+  </g>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9" fill="#52525b">
+    <text x="467" y="180">16 kHz PCM16</text>
+    <text x="679" y="192" text-anchor="middle">audio &#183; audio_end</text>
+    <text x="679" y="204" text-anchor="middle">interrupt</text>
+    <text x="679" y="257" text-anchor="middle">playback_finished</text>
+  </g>
+</svg>

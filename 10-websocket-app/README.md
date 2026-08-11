@@ -4,24 +4,11 @@ Build with the **LemonSlice WebSocket integration**: drive a LemonSlice avatar f
 
 The WebSocket carries **only audio and control events**. Avatar video is published into a LiveKit room that you own; your app joins that room as a viewer.
 
+https://github.com/user-attachments/assets/394224a6-59d3-42b4-8c99-c67816dbd24e
+
 ## How the integration works
 
-```
-                    ┌──────────── FastAPI bridge (:3001) ────────────┐
- browser            │                                                │
- ┌─────────┐  mic   │  ┌────────────┐  agent audio  ┌─────────────┐  │
- │ mic     │─PCM16─►│  │ ElevenLabs │──────────────►│ LemonSlice  │  │
- │ capture │ 16 kHz │  │ agent (WS) │◄──interrupt───│ tunnel (WS) │  │
- └─────────┘        │  └────────────┘               └──────┬──────┘  │
-                    │                                      │ avatar  │
- ┌─────────┐ events │                                      │ A/V     │
- │ LiveKit │◄───────┼──────────────────────────────────────┼─────────┘
- │ (viewer)│        └──────────────────────────────────────┼──────────
- └─────────┘                                                ▼
-      ▲                                            ┌──────────────┐
-      └───────────── avatar audio + video ─────────│ LiveKit room │
-                                                   └──────────────┘
-```
+<img src="docs/websocket-architecture.svg" alt="WebSocket integration diagram" width="100%" />
 
 1. **Create a session.** `POST https://lemonslice.com/api/liveai/sessions` with `transport_type: "websocket-livekit"`, a LiveKit URL + a publish token (so LemonSlice can join your room), and an avatar image. It returns a `websocket_address`.
 2. **Open the tunnel.** Connect a plain WebSocket to `websocket_address`. Only one client may be connected per session.
