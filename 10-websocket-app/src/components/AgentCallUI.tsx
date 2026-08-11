@@ -50,6 +50,7 @@ export default function AgentCallUI() {
   const micRef = useRef<MicCapture | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextEventId = useRef(0);
+  const callGeneration = useRef(0);
   const { width, height } = useActiveSize(1 - panelFraction);
 
   useRingtone(phase !== "idle" && !avatarReady);
@@ -61,6 +62,7 @@ export default function AgentCallUI() {
   }, []);
 
   const teardown = useCallback(async () => {
+    callGeneration.current += 1;
     bridgeRef.current?.close();
     bridgeRef.current = null;
 
@@ -81,6 +83,7 @@ export default function AgentCallUI() {
 
   useEffect(() => {
     return () => {
+      callGeneration.current += 1;
       bridgeRef.current?.close();
       void micRef.current?.stop().catch(() => {});
     };
@@ -111,6 +114,9 @@ export default function AgentCallUI() {
         case "agent_closed":
           showToast(`ElevenLabs closed: ${event.reason}`);
           break;
+        case "tunnel_closed":
+          void teardown();
+          break;
         case "error":
           showToast(event.message);
           break;
@@ -118,7 +124,7 @@ export default function AgentCallUI() {
           break;
       }
     },
-    [showToast],
+    [showToast, teardown],
   );
 
   const handleStartCall = useCallback(async () => {
@@ -147,8 +153,14 @@ export default function AgentCallUI() {
     setAvatarReady(true);
     const bridge = bridgeRef.current;
     if (!bridge || micRef.current) return;
+    const generation = callGeneration.current;
     try {
-      micRef.current = await startMicCapture((pcm16) => bridge.sendAudio(pcm16));
+      const mic = await startMicCapture((pcm16) => bridge.sendAudio(pcm16));
+      if (generation !== callGeneration.current) {
+        await mic.stop().catch(() => {});
+        return;
+      }
+      micRef.current = mic;
     } catch (error) {
       console.error(error);
     }
@@ -186,29 +198,31 @@ export default function AgentCallUI() {
       <div className="flex min-h-[50vh] w-full flex-1 flex-col items-center justify-center p-4 lg:h-full lg:min-h-0 lg:w-auto lg:min-w-0">
         {phase === "idle" ? (
           <PreJoinPreview placeholderVideo={PLACEHOLDER_VIDEO} onStartCall={handleStartCall} />
-        ) : // The session call takes a few seconds; ring through it rather than
-        // making the LiveKit token a prerequisite for showing the call.
-        phase === "ringing" || !session ? (
-          <RingingView placeholderVideo={PLACEHOLDER_VIDEO} />
         ) : (
-          <LiveKitCallView
-            serverUrl={session.livekit_url}
-            token={session.livekit_token}
-            width={width}
-            height={height}
-            placeholderVideo={PLACEHOLDER_VIDEO}
-            muted={muted}
-            micLevel={micLevel}
-            avatarSpeaking={avatarSpeaking}
-            message={message}
-            toast={toast}
-            onMessageChange={setMessage}
-            onSendMessage={handleSendMessage}
-            onToggleMute={handleToggleMute}
-            onInterrupt={handleInterrupt}
-            onAvatarReady={handleAvatarReady}
-            onHangUp={handleHangUp}
-          />
+          <>
+            {avatarReady ? null : <RingingView placeholderVideo={PLACEHOLDER_VIDEO} />}
+            {session ? (
+              <LiveKitCallView
+                ready={avatarReady}
+                serverUrl={session.livekit_url}
+                token={session.livekit_token}
+                width={width}
+                height={height}
+                placeholderVideo={PLACEHOLDER_VIDEO}
+                muted={muted}
+                micLevel={micLevel}
+                avatarSpeaking={avatarSpeaking}
+                message={message}
+                toast={toast}
+                onMessageChange={setMessage}
+                onSendMessage={handleSendMessage}
+                onToggleMute={handleToggleMute}
+                onInterrupt={handleInterrupt}
+                onAvatarReady={handleAvatarReady}
+                onHangUp={handleHangUp}
+              />
+            ) : null}
+          </>
         )}
       </div>
 

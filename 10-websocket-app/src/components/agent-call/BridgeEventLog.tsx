@@ -14,6 +14,7 @@ const TYPE_STYLES: Partial<Record<BridgeEvent["type"], string>> = {
   response_committed: "text-emerald-500",
   interrupted: "text-amber-500",
   agent_closed: "text-red-500",
+  tunnel_closed: "text-red-500",
   error: "text-red-500",
 };
 

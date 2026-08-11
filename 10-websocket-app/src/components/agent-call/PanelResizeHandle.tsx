@@ -15,6 +15,13 @@ export function PanelResizeHandle({ onResize }: { onResize: (fraction: number) =
     [dragging, onResize],
   );
 
+  const stopDragging = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    setDragging(false);
+  }, []);
+
   return (
     <div
       role="separator"
@@ -28,10 +35,9 @@ export function PanelResizeHandle({ onResize }: { onResize: (fraction: number) =
         setDragging(true);
       }}
       onPointerMove={handlePointerMove}
-      onPointerUp={(event) => {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-        setDragging(false);
-      }}
+      onPointerUp={stopDragging}
+      onPointerCancel={stopDragging}
+      onLostPointerCapture={stopDragging}
     />
   );
 }

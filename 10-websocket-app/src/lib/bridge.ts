@@ -21,6 +21,7 @@ export type BridgeEvent =
   | { type: "playback_finished"; interrupted: boolean; playback_position: number | null }
   | { type: "tunnel_message"; direction: "in" | "out"; message: Record<string, unknown> }
   | { type: "agent_closed"; reason: string }
+  | { type: "tunnel_closed"; reason: string }
   | { type: "error"; message: string };
 
 export type SessionInfo = {

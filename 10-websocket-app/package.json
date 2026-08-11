@@ -2,6 +2,9 @@
   "name": "lemonslice-websocket-app",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev",
     "dev:backend": "cd backend && uv run python -m lemonslice_bridge",

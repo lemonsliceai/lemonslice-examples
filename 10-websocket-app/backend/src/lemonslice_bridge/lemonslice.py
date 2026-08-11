@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 import httpx
 import websockets
+from websockets.exceptions import ConnectionClosed
 
 from lemonslice_bridge.rooms import LiveKitRoom
 
@@ -91,10 +92,12 @@ class LemonSliceTunnel:
         *,
         on_event: Callable[[dict], Awaitable[None]],
         on_message: Callable[[str, dict], Awaitable[None]],
+        on_closed: Callable[[str], Awaitable[None]],
     ) -> None:
         self._address = address
         self._on_event = on_event
         self._on_message = on_message
+        self._on_closed = on_closed
         self._websocket: websockets.ClientConnection | None = None
         self._receive_task: asyncio.Task | None = None
         self._send_lock = asyncio.Lock()
@@ -156,6 +159,7 @@ class LemonSliceTunnel:
         websocket = self._websocket
         if websocket is None:
             return
+        reason = "closed"
         try:
             async for raw in websocket:
                 if isinstance(raw, bytes):
@@ -170,10 +174,18 @@ class LemonSliceTunnel:
                     await self._on_event(event)
         except asyncio.CancelledError:
             raise
-        except websockets.exceptions.ConnectionClosed:
-            logger.info("LemonSlice tunnel closed")
-        except Exception:
+        except ConnectionClosed as exc:
+            reason = exc.reason or f"closed with code {exc.code}"
+            logger.info("LemonSlice tunnel closed: %s", reason)
+        except Exception as exc:  # noqa: BLE001 - reported to the browser
+            reason = str(exc)
             logger.exception("LemonSlice tunnel receive loop failed")
+
+        self._websocket = None
+        with contextlib.suppress(Exception):
+            await websocket.close()
+        with contextlib.suppress(Exception):
+            await self._on_closed(reason)
 
 
 def _display_message(message: dict) -> dict:

@@ -54,7 +54,7 @@ LemonSlice → client:
 
 ## Setup
 
-Requires Node 18+, Python 3.11+, and [uv](https://docs.astral.sh/uv/getting-started/installation/).
+Requires Node 20.9+, Python 3.11+, and [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
 ```bash
 cp .env.example .env.local   # then fill it in

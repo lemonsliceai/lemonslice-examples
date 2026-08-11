@@ -11,9 +11,9 @@ import { LiveKitAvatarReadyWatcher } from "@lemonsliceai/avatar/livekit-react";
 import { RoomEvent, Track, isVideoTrack, type VideoTrack } from "livekit-client";
 import { AgentVideoView } from "@/components/agent-call/AgentVideoView";
 import { CallControlsBar } from "@/components/agent-call/CallControlsBar";
-import { RingingView } from "@/components/agent-call/RingingView";
 
 type CallViewProps = {
+  ready: boolean;
   width: number;
   height: number;
   placeholderVideo: string | null;
@@ -44,6 +44,7 @@ function useAvatarVideoTrack(): VideoTrack | null {
 }
 
 function CallInner({
+  ready,
   width,
   height,
   placeholderVideo,
@@ -56,11 +57,9 @@ function CallInner({
   const videoTrack = useAvatarVideoTrack();
   const [avatarReady, setAvatarReady] = useState(false);
 
-  const compact = !(avatarReady && videoTrack);
-
   useEffect(() => {
-    if (!compact) onAvatarReady();
-  }, [compact, onAvatarReady]);
+    if (avatarReady && videoTrack) onAvatarReady();
+  }, [avatarReady, videoTrack, onAvatarReady]);
 
   useEffect(() => {
     const onParticipantDisconnected = () => {
@@ -74,9 +73,7 @@ function CallInner({
 
   return (
     <div className="flex w-full flex-col items-center gap-4">
-      {compact ? (
-        <RingingView placeholderVideo={placeholderVideo} />
-      ) : (
+      {ready ? (
         <>
           <div className="relative flex flex-col items-center">
             <AgentVideoView
@@ -99,7 +96,7 @@ function CallInner({
           </div>
           <CallControlsBar {...controls} onHangUp={onHangUp} />
         </>
-      )}
+      ) : null}
 
       <LiveKitAvatarReadyWatcher onReady={() => setAvatarReady(true)} />
       <RoomAudioRenderer />

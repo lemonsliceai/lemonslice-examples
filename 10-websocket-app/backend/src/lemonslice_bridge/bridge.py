@@ -63,6 +63,7 @@ class AudioBridge:
             self._session.websocket_address,
             on_event=self._on_tunnel_event,
             on_message=self._on_tunnel_message,
+            on_closed=self._on_tunnel_closed,
         )
         await self._tunnel.connect()
         await self._emit({"type": "tunnel_connected"})
@@ -169,6 +170,9 @@ class AudioBridge:
 
         else:
             logger.debug("Unhandled tunnel event: %s", command)
+
+    async def _on_tunnel_closed(self, reason: str) -> None:
+        await self._emit({"type": "tunnel_closed", "reason": reason})
 
     async def _on_tunnel_message(self, direction: str, message: dict) -> None:
         await self._emit(

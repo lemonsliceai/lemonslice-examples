@@ -13,6 +13,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 import websockets
+from websockets.exceptions import ConnectionClosed
 
 from lemonslice_bridge.audio import (
     AudioFormat,
@@ -136,15 +137,15 @@ class ElevenLabsAgent:
                     await self._handle_event(event)
         except asyncio.CancelledError:
             raise
-        except websockets.exceptions.ConnectionClosed as exc:
+        except ConnectionClosed as exc:
             reason = exc.reason or f"closed with code {exc.code}"
             logger.info("ElevenLabs WebSocket closed: %s", reason)
         except Exception as exc:  # noqa: BLE001 - reported to the browser
             reason = str(exc)
             logger.exception("ElevenLabs receive loop failed")
-        finally:
-            with contextlib.suppress(Exception):
-                await self._callbacks.on_closed(reason)
+
+        with contextlib.suppress(Exception):
+            await self._callbacks.on_closed(reason)
 
     async def _handle_event(self, event: dict) -> None:
         event_type = event.get("type")
