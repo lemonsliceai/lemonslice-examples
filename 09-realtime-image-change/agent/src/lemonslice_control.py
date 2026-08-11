@@ -191,7 +191,7 @@ async def lemonslice_control_update_image(
     POST /liveai/sessions/{session_id}/control with event=update-image.
 
     Provide exactly one of ``image_url`` or ``image_base64``.
-    See https://lemonslice.com/docs/api-reference/control-self-managed-session
+    See https://lemonslice.com/docs/api-reference/control-session
     """
     api_key = os.getenv("LEMONSLICE_API_KEY")
     if not api_key:

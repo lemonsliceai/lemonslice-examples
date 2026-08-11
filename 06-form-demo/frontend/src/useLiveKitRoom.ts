@@ -212,7 +212,7 @@ export function useLiveKitRoom(tokenUrl: string) {
           return;
         }
 
-        // LemonSlice RPC — see https://lemonslice-jp-docs-4-27.mintlify.app/self-managed/integrations/livekit-agent-integration
+        // LemonSlice RPC — see https://lemonslice.com/docs/livekit
         if (topic === LEMONSLICE_TOPIC) {
           const o = parsed as Record<string, unknown>;
           if (o.type === "metric") {

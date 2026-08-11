@@ -1,7 +1,7 @@
 [project]
 name = "lemonslice-pipecat-daily-agent"
 version = "0.1.0"
-description = "Pipecat + LemonSlice self-managed backend for Daily room sessions"
+description = "Pipecat + LemonSlice API integration backend for Daily room sessions"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

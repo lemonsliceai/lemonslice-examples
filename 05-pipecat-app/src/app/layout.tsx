@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Pipecat + LemonSlice (Daily)",
-  description: "Daily room frontend for LemonSlice self-managed Pipecat integration.",
+  description: "Daily room frontend for LemonSlice Pipecat API integration.",
 };
 
 export default function RootLayout({

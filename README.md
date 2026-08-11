@@ -27,7 +27,7 @@ Every real-time conversation with a character goes through the following steps:
 
 All of this runs within a harness that manages the orchestration and WebRTC connection. LemonSlice connects to all major WebRTC providers to make orchestration easy.
 
-<img src="docs/self-managed-diagram.png" alt="Self-managed integration diagram" width="100%" />
+<img src="docs/api-integration-diagram.png" alt="API integration diagram" width="100%" />
 
 The inputs to the LemonSlice API are:
 
@@ -43,7 +43,7 @@ Add LemonSlice to the stack you already use. LemonSlice integrates with all majo
 
 You can think of LemonSlice like a graphics layer or “face layer” that’s added on top of your voice agent. It is compatible with any TTS and LLM model.
 
-| | **Self-managed** (LiveKit, Pipecat) | **Hosted pipeline** | **Widget** |
+| | **API integration** | **Hosted pipeline** | **Widget** |
 | --- | --- | --- | --- |
 | **Complexity** | Full code | Low code | No code |
 | **You control** | Speech, intelligence, call UI | Call UI | Nothing |
@@ -76,7 +76,7 @@ https://github.com/user-attachments/assets/0c889262-1021-4918-878d-722930ffda5f
 
 | | |
 | --- | --- |
-| **[03-livekit-app-python](./03-livekit-app-python/)** | End-to-end self-managed pipeline — Next.js UI, Python LiveKit Agents worker, LemonSlice avatar. |
+| **[03-livekit-app-python](./03-livekit-app-python/)** | End-to-end example showing how to use the LemonSlice API with LiveKit. Includes Next.js UI, Python LiveKit Agents worker, and LemonSlice avatar. |
 | **[04-livekit-app-nodejs](./04-livekit-app-nodejs/)** | Same as `03`, with the agent in Node.js ([LiveKit Agents JS](https://github.com/livekit/agents-js)). |
 | **[05-pipecat-app](./05-pipecat-app/)** | Same call UI as the LiveKit examples, using Daily + Pipecat instead. |
 | **[02-livekit-playground-demo](./02-livekit-playground-demo/)** | Minimal agent for iterating in the [LiveKit playground](https://docs.livekit.io/home/cli/playground/). |

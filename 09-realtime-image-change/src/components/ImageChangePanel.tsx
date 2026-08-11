@@ -107,7 +107,7 @@ export function ImageChangePanel({
           Update the avatar’s reference image mid-call with the LemonSlice{" "}
           <a
             className="underline underline-offset-2 hover:text-foreground"
-            href="https://lemonslice.com/docs/api-reference/control-self-managed-session"
+            href="https://lemonslice.com/docs/api-reference/control-session"
             target="_blank"
             rel="noreferrer"
           >
