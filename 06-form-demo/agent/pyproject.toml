@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "LiveKit Agents worker for the LemonSlice form demo (voice SDR + sidebar)"
 requires-python = ">=3.10"
 dependencies = [
-    "livekit-agents[lemonslice]>=1.2.0,<2",
+    "livekit-agents[lemonslice]>=1.6.5,<2",
     "livekit-plugins-silero>=1.0.0",
     "python-dotenv>=1.0.0",
 ]
