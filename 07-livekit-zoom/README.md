@@ -16,7 +16,6 @@ https://github.com/user-attachments/assets/c5c36794-0ddf-4fe3-b812-9c6663ab2a49
 - API keys for:
   - LiveKit (URL, API key, and API secret)
   - LemonSlice
-  - Groq
   - ElevenLabs
 
 ## Install
@@ -44,7 +43,6 @@ uv sync
    LIVEKIT_API_KEY=your_livekit_api_key
    LIVEKIT_API_SECRET=your_livekit_api_secret
    LIVEKIT_URL=wss://your-project.livekit.cloud
-   GROQ_API_KEY=your_groq_api_key
    ELEVENLABS_VOICE_ID=your_elevenlabs_voice_id
    ELEVEN_API_KEY=your_elevenlabs_api_key
    ```
@@ -91,7 +89,7 @@ This example uses a agent stack optimized for fast response times:
 | Component | Provider |
 |-----------|----------|
 | STT | Deepgram Nova-2 (via LiveKit Inference) |
-| LLM | Groq `llama-3.3-70b-versatile` |
+| LLM | Google Gemma 4 31B IT (`google/gemma-4-31b-it`, via LiveKit Inference) |
 | TTS | ElevenLabs `eleven_flash_v2_5` |
 | Avatar | LemonSlice |
 

@@ -14,7 +14,7 @@ from livekit.agents import (
     inference,
     utils,
 )
-from livekit.plugins import elevenlabs, groq, lemonslice
+from livekit.plugins import elevenlabs, lemonslice
 
 logger = logging.getLogger("zoom-avatar")
 logger.setLevel(logging.INFO)
@@ -49,7 +49,7 @@ async def entrypoint(ctx: JobContext):
             language="en",
             extra_kwargs={"interim_results": False},
         ),
-        llm=groq.LLM(model="llama-3.3-70b-versatile"),
+        llm=inference.LLM(model="google/gemma-4-31b-it"),
         tts=elevenlabs.TTS(voice_id=voice_id, model="eleven_flash_v2_5"),
         turn_handling=TurnHandlingOptions(
             interruption={

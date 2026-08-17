@@ -1,5 +1,5 @@
 """
-LiveKit Agents worker: Groq LLM + ElevenLabs TTS + LemonSlice avatar.
+LiveKit Agents worker: LiveKit Inference LLM + ElevenLabs TTS + LemonSlice avatar.
 
 Loads environment from the repository root `.env` / `.env.local` (same as Next.js).
 From repo root: `npm run dev:agent` or `npm run dev:all`.
@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 from livekit import agents
 from livekit.agents import Agent, AgentServer, AgentSession, TurnHandlingOptions, inference, room_io, utils
-from livekit.plugins import elevenlabs, groq, lemonslice, noise_cancellation
+from livekit.plugins import elevenlabs, lemonslice, noise_cancellation
 
 # Repo root = parent of `agent/` (same `.env.local` as Next.js)
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -62,7 +62,7 @@ async def lemonslice_agent(ctx: agents.JobContext) -> None:
             language="en",
             extra_kwargs={"interim_results": False},
         ),
-        llm=groq.LLM(model="llama-3.3-70b-versatile"),
+        llm=inference.LLM(model="google/gemma-4-31b-it"),
         tts=elevenlabs.TTS(voice_id=ELEVENLABS_VOICE_ID, model="eleven_flash_v2_5"),
         turn_handling=TurnHandlingOptions(
             interruption={"resume_false_interruption": False},
