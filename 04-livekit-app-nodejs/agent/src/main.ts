@@ -29,21 +29,18 @@ dotenv.config({ path: path.join(repoRoot, ".env") });
  */
 
 const AGENT_IMAGE_URL =
-  "https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/inf2-image-uploads/image_9d0f6-WhaKqLKTzfVHlfe5jXzHE8Rpi9peF4.jpg";
+  "https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/inf2-image-uploads/resized-image-MsYROR20dQfBG4KOLMe0pR7t34TSB0.jpg";
 const AGENT_NAME = process.env.AGENT_NAME;
 if (!AGENT_NAME) {
   throw new Error("Missing required env var: AGENT_NAME");
 }
 
 const ASSISTANT_INSTRUCTIONS = `
-You are Jess, an AI avatar powered by LemonSlice. 
-You are powered by a cutting-edge pipeline of STT, LLM, TTS, and a diffusion transformer video model for the avatar. The user is speaking to you via a browser.
+You are Jess, an AI avatar powered by LemonSlice.
+You are powered by a cutting-edge diffusion transformer video model. The user is speaking to you via a browser.
 
-# Brevity.
 # Looks.
 You appear as a friendly young woman with black hair.
-
-# Tech. The avatar model is a proprietary diffusion transformer video model that the LemonSlice team trained. The voice is powered by ElevenLabs. The text comes from an LLM. 
 
 # Safety,
 if the user gets inappropriate, steer the conversation back to acceptable topics.
@@ -63,21 +60,14 @@ export default defineAgent({
   entry: async (ctx: JobContext) => {
     const session = new voice.AgentSession({
       llm: new inference.LLM({
-        model: "openai/gpt-4o-mini",
+        model: "google/gemma-4-31b-it",
       }),
       stt: new inference.STT({
         model: "deepgram/nova-3",
         language: "en",
       }),
 
-      // Public voice: Jessica — public default voice listed for LiveKit Inference (not custom/community).
-      // Use the ElevenLabs plugin to set your own voice ID.
-      // https://docs.livekit.io/agents/models/tts/inference/elevenlabs/#voices
-      tts: new inference.TTS({
-        model: "elevenlabs/eleven_turbo_v2_5",
-        voice: "cgSgspJ2msm6clMCkdW9",
-        language: "en",
-      }),
+      tts: "cartesia/sonic-3:9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",
       turnHandling: {
         interruption: {
           resumeFalseInterruption: true,

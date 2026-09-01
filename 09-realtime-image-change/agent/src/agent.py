@@ -54,8 +54,7 @@ load_dotenv(_REPO_ROOT / ".env")
 logger = logging.getLogger("lemonslice")
 
 # Public HTTPS image for session start (LiveKit LemonSlice plugin requires a URL).
-_HERO = "https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/public/hero_agents"
-AGENT_IMAGE_URL = f"{_HERO}/jess2/base.png"
+AGENT_IMAGE_URL = "https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/public/hero_agents/jess2/base.png"
 
 # Local presets for tool-driven update-image (sent as image_base64, not URLs).
 AGENT_IMAGE_PATH = _ASSETS_DIR / "base.jpg"
@@ -501,11 +500,7 @@ async def lemonslice_agent(ctx: agents.JobContext) -> None:
     session = AgentSession(
         llm=inference.LLM(model="openai/gpt-4o-mini"),
         stt=inference.STT(model="deepgram/nova-3", language="en"),
-        tts=inference.TTS(
-            model="elevenlabs/eleven_turbo_v2_5",
-            voice="cgSgspJ2msm6clMCkdW9",
-            language="en",
-        ),
+        tts="cartesia/sonic-3:9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",
         turn_handling=TurnHandlingOptions(
             interruption={"resume_false_interruption": True},
         ),

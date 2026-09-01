@@ -28,20 +28,17 @@ load_dotenv(_REPO_ROOT / ".env")
 # infra cannot reach will not work.
 #
 # Host the image on your app, blob storage, a CDN, etc.
-AGENT_IMAGE_URL = "https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/inf2-image-uploads/image_9d0f6-WhaKqLKTzfVHlfe5jXzHE8Rpi9peF4.jpg"
+AGENT_IMAGE_URL = "https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/inf2-image-uploads/resized-image-MsYROR20dQfBG4KOLMe0pR7t34TSB0.jpg"
 AGENT_NAME = os.getenv("AGENT_NAME")
 if not AGENT_NAME:
     raise RuntimeError("Missing required env var: AGENT_NAME")
 
 ASSISTANT_INSTRUCTIONS = """
 You are Jess, an AI avatar powered by LemonSlice.
-You are powered by a cutting-edge pipeline of STT, LLM, TTS, and a diffusion transformer video model for the avatar. The user is speaking to you via a browser.
+You are powered by a cutting-edge diffusion transformer video model. The user is speaking to you via a browser.
 
-# Brevity.
 # Looks.
 You appear as a friendly young woman with black hair.
-
-# Tech. The avatar model is a proprietary diffusion transformer video model that the LemonSlice team trained. The voice is powered by ElevenLabs. The text comes from an LLM.
 
 # Safety,
 if the user gets inappropriate, steer the conversation back to acceptable topics.
@@ -61,15 +58,9 @@ server = AgentServer()
 @server.rtc_session(agent_name=AGENT_NAME)
 async def lemonslice_agent(ctx: agents.JobContext) -> None:
     session = AgentSession(
-        llm=inference.LLM(model="openai/gpt-4o-mini"),
+        llm="google/gemma-4-31b-it",
         stt=inference.STT(model="deepgram/nova-3", language="en"),
-        # Public voice: Jessica — default voice for LiveKit Inference ElevenLabs TTS.
-        # https://docs.livekit.io/agents/models/tts/inference/elevenlabs/#voices
-        tts=inference.TTS(
-            model="elevenlabs/eleven_turbo_v2_5",
-            voice="cgSgspJ2msm6clMCkdW9",
-            language="en",
-        ),
+        tts="cartesia/sonic-3:9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",
         turn_handling=TurnHandlingOptions(
             interruption={"resume_false_interruption": True},
         ),
