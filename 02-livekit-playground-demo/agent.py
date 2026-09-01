@@ -27,13 +27,13 @@ async def my_agent(ctx: agents.JobContext):
 
     session = AgentSession(
         stt="deepgram/nova-2",
-        llm="openai/gpt-4o-mini",
-        tts="elevenlabs/eleven_flash_v2_5",
+        llm="google/gemma-4-31b-it",
+        tts="cartesia/sonic-3:9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",
         resume_false_interruption=False,
     )
 
     avatar = lemonslice.AvatarSession(
-        agent_image_url="https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/inf2-image-uploads/image_9d0f6-WhaKqLKTzfVHlfe5jXzHE8Rpi9peF4.jpg",
+        agent_image_url="https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/inf2-image-uploads/resized-image-MsYROR20dQfBG4KOLMe0pR7t34TSB0.jpg",
         agent_prompt="a person talking.",
     )
 
