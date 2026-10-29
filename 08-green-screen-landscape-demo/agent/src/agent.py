@@ -73,6 +73,8 @@ async def lemonslice_agent(ctx: agents.JobContext) -> None:
         agent_image_url=AGENT_IMAGE_URL,
         agent_prompt="A person talking.",
         aspect_ratio="2x3",
+        # Recommended. Adapts video quality to each viewer's bandwidth
+        simulcast=True,
     )
 
     await avatar.start(session, room=ctx.room)

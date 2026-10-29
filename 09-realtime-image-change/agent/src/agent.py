@@ -510,6 +510,8 @@ async def lemonslice_agent(ctx: agents.JobContext) -> None:
 
     avatar = lemonslice.AvatarSession(
         agent_image_url=AGENT_IMAGE_URL,
+        # Recommended. Adapts video quality to each viewer's bandwidth
+        simulcast=True,
     )
 
     session_id = await avatar.start(session, room=ctx.room)

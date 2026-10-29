@@ -59,6 +59,8 @@ async def entrypoint(ctx: JobContext):
     )
     avatar = lemonslice.AvatarSession(
         agent_image_url=lemonslice_image_url,
+        # Recommended. Adapts video quality to each viewer's bandwidth
+        simulcast=True,
     )
     await avatar.start(session, room=ctx.room)
 
