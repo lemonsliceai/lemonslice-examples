@@ -105,6 +105,8 @@ avatar = lemonslice.AvatarSession(
     agent_image_url=AGENT_IMAGE_URL,
     agent_prompt="A person talking.",
     aspect_ratio="1x1",
+    # Recommended. Adapts video quality to each viewer's bandwidth
+    simulcast=True,
 )
 ```
 

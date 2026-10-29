@@ -80,6 +80,8 @@ export default defineAgent({
     const avatar = new lemonslice.AvatarSession({
       agentImageUrl: AGENT_IMAGE_URL,
       agentPrompt: "A person talking.",
+      // Recommended. Adapts video quality to each viewer's bandwidth
+      simulcast: true,
     });
 
     await avatar.start(session, ctx.room);

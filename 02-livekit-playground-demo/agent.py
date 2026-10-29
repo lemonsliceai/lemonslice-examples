@@ -35,6 +35,8 @@ async def my_agent(ctx: agents.JobContext):
     avatar = lemonslice.AvatarSession(
         agent_image_url="https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/inf2-image-uploads/resized-image-MsYROR20dQfBG4KOLMe0pR7t34TSB0.jpg",
         agent_prompt="a person talking.",
+        # Recommended. Adapts video quality to each viewer's bandwidth
+        simulcast=True,
     )
 
     # Start the avatar and wait for it to join
