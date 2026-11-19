@@ -12,9 +12,6 @@ import { RoomEvent, Track, isVideoTrack, type VideoTrack } from "livekit-client"
 import { AgentVideoView } from "@/components/agent-call/AgentVideoView";
 import { CallControlsBar } from "@/components/agent-call/CallControlsBar";
 
-// Must match AVATAR_IDENTITY in backend/src/lemonslice_bridge/rooms.py
-const AVATAR_IDENTITY = "lemonslice";
-
 type CallViewProps = {
   ready: boolean;
   width: number;
@@ -101,10 +98,7 @@ function CallInner({
         </>
       ) : null}
 
-      <LiveKitAvatarReadyWatcher
-        avatarParticipantIdentity={AVATAR_IDENTITY}
-        onReady={() => setAvatarReady(true)}
-      />
+      <LiveKitAvatarReadyWatcher onReady={() => setAvatarReady(true)} />
       <RoomAudioRenderer />
     </div>
   );

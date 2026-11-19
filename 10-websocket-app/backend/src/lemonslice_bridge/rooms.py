@@ -14,7 +14,7 @@ from datetime import timedelta
 
 from livekit import api
 
-AVATAR_IDENTITY = "lemonslice"
+AVATAR_IDENTITY = "lemonslice-avatar-agent"
 TOKEN_TTL_SECONDS = 60 * 60
 
 
